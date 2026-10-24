@@ -19,6 +19,10 @@ COST_PER_DEPENDANT = 900  # PLACEHOLDER, monthly
 STRESS_THRESHOLD = 0.30
 SEVERE_STRESS_THRESHOLD = 0.40
 
+# PLACEHOLDER judgement call, not an official figure: a household with less than
+# this left over each month has little room for surprises. Revisit in Phase 4.
+LOW_BUFFER_THRESHOLD = 1_000
+
 
 def living_costs(preset: str, borrowers: int = 1, dependants: int = 0) -> float:
     """Estimated monthly living costs for the household, excluding housing."""
@@ -42,3 +46,16 @@ def stress_label(ratio: float) -> str:
     if ratio < SEVERE_STRESS_THRESHOLD:
         return "Mortgage stress"
     return "Severe mortgage stress"
+
+
+def thirty_percent_rule_misleading(
+    ratio: float, loan_amount: float, borrowing_power: float, left_over: float
+) -> bool:
+    """True when the 30% rule says "fine" but the household's budget says otherwise.
+
+    That happens when repayments are under 30% of gross income, yet the loan is
+    above the estimated borrowing power or very little money is left each month.
+    """
+    if loan_amount <= 0 or ratio >= STRESS_THRESHOLD:
+        return False
+    return loan_amount > borrowing_power or left_over < LOW_BUFFER_THRESHOLD

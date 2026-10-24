@@ -2,7 +2,12 @@ import math
 
 import pytest
 
-from engine.budget import living_costs, stress_label, stress_ratio
+from engine.budget import (
+    living_costs,
+    stress_label,
+    stress_ratio,
+    thirty_percent_rule_misleading,
+)
 
 
 def test_single_preset():
@@ -35,3 +40,17 @@ def test_stress_ratio_zero_income():
 )
 def test_stress_label(ratio, label):
     assert stress_label(ratio) == label
+
+
+@pytest.mark.parametrize(
+    "ratio, loan, power, left_over, expected",
+    [
+        (0.25, 500_000, 600_000, 2_500, False),  # under 30% and genuinely comfortable
+        (0.25, 500_000, 400_000, 2_500, True),   # under 30% but above borrowing power
+        (0.25, 500_000, 600_000, 800, True),     # under 30% but under $1,000 left over
+        (0.35, 500_000, 400_000, 800, False),    # already flagged as stress, no extra warning
+        (0.0, 0, 0, 500, False),                 # no loan, nothing to warn about
+    ],
+)
+def test_thirty_percent_rule_misleading(ratio, loan, power, left_over, expected):
+    assert thirty_percent_rule_misleading(ratio, loan, power, left_over) is expected

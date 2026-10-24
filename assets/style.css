@@ -1,0 +1,135 @@
+/* All custom styling for Mortgage Reality Check. Loaded by ui.components.load_css(). */
+
+/* ---------- Hero (st.container(key="hero") gets the class .st-key-hero) ---------- */
+.st-key-hero {
+    /* --hero-image is set from Python when assets/hero.jpg exists */
+    background-image:
+        linear-gradient(120deg, rgba(8, 28, 44, 0.88) 0%, rgba(8, 28, 44, 0.55) 60%, rgba(8, 28, 44, 0.35) 100%),
+        var(--hero-image, linear-gradient(120deg, #12324a 0%, #0e5c5b 100%));
+    background-size: cover;
+    background-position: center;
+    border-radius: 16px;
+    padding: 4.5rem 3rem;
+    min-height: 340px;
+    justify-content: center;
+}
+
+.st-key-hero h1,
+.st-key-hero p {
+    color: #ffffff !important;
+}
+
+.st-key-hero h1 {
+    font-size: 3rem;
+    line-height: 1.1;
+    padding-bottom: 0.25rem;
+}
+
+.st-key-hero .mrc-tagline {
+    font-size: 1.25rem;
+    max-width: 38rem;
+    opacity: 0.95;
+}
+
+.mrc-photo-credit {
+    font-size: 0.75rem;
+    color: #6b7785;
+    text-align: right;
+    margin-top: 0.25rem;
+}
+
+/* ---------- Cards ---------- */
+.mrc-card {
+    background: #ffffff;
+    border: 1px solid #e3e8ee;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    height: 100%;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
+    margin-bottom: 0.75rem;
+}
+
+.mrc-card p {
+    margin: 0;
+}
+
+.mrc-card-label {
+    font-size: 0.85rem !important;
+    color: #52606d;
+}
+
+.mrc-card-value {
+    font-size: 1.75rem !important;
+    font-weight: 700;
+    color: #12324a;
+    margin: 0.2rem 0 !important;
+}
+
+.mrc-card-date {
+    font-size: 0.8rem !important;
+    color: #0e7c7b;
+    font-weight: 600;
+}
+
+.mrc-card-notes {
+    font-size: 0.85rem !important;
+    color: #3e4c59;
+    margin-top: 0.5rem !important;
+}
+
+.mrc-card-source {
+    font-size: 0.8rem !important;
+    color: #52606d;
+    margin-top: 0.5rem !important;
+}
+
+.mrc-card-title {
+    font-size: 1.1rem !important;
+    font-weight: 700;
+    color: #12324a;
+    margin-bottom: 0.4rem !important;
+}
+
+.mrc-card-body {
+    color: #3e4c59;
+}
+
+/* ---------- Disclaimer box and footer ---------- */
+.mrc-disclaimer {
+    background: #fff8e6;
+    border-left: 4px solid #d9a21b;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    color: #3e4c59;
+    font-size: 0.95rem;
+}
+
+/* st.container(key="footer") gets the class .st-key-footer */
+.st-key-footer {
+    border-top: 1px solid #e3e8ee;
+    margin-top: 3rem;
+    padding-top: 1rem;
+    align-items: center;
+    text-align: center;
+    gap: 0;
+}
+
+/* ---------- Narrow screens (phones) ---------- */
+@media (max-width: 640px) {
+    .st-key-hero {
+        padding: 2.5rem 1.25rem;
+        min-height: 260px;
+    }
+
+    .st-key-hero h1 {
+        font-size: 2rem;
+    }
+
+    .st-key-hero .mrc-tagline {
+        font-size: 1.05rem;
+    }
+
+    .mrc-card-value {
+        font-size: 1.5rem !important;
+    }
+}

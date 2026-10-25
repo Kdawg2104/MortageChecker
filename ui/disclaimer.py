@@ -23,7 +23,16 @@ KEY_ASSUMPTIONS = [
     "spending data). A couple is costed at 1.7 times a single, plus a set amount per dependant.",
     "Loans are **principal and interest only**, at one interest rate for the whole term. "
     "No interest-only periods, offset accounts or extra repayments.",
-    "**No stamp duty, LMI premium, lender fees or other upfront costs** are included yet.",
+    "Upfront costs are for **NSW only**: stamp duty with the first home buyer concession, and official "
+    "Land Registry fees. Other states are coming later. **No foreign purchaser surcharge** and no stamp "
+    "duty on the LMI premium.",
+    "**LMI is an indicative estimate** from a broker-published table, since insurers don't publish "
+    "prices. Conveyancing, inspection, lender and moving costs are **placeholder estimates** you can edit.",
+    "The 5% Deposit Scheme check covers the price cap and minimum deposit only, not income or other "
+    "eligibility rules.",
+    "Stress scenarios run for 36 months on a **variable-rate** loan whose repayment is recalculated when "
+    "the rate changes. Shocks start in month 1 unless you change them. Tax thresholds stay at 2026-27 "
+    "levels (no bracket creep).",
     "Tax is for **Australian residents in 2026-27**: income tax, the Low Income Tax Offset, "
     "Medicare levy and HECS/HELP. No other deductions, offsets or surcharges.",
     "Borrowing power is a **simplified estimate**: your whole monthly surplus is assumed to go "

@@ -1,4 +1,4 @@
-"""Calculator page: collects household, spending and loan details, then shows the results.
+"""Calculator page: collects household, spending, loan and purchase details, then shows the results.
 
 All maths comes from engine/; this page only gathers inputs and displays outcomes.
 """
@@ -15,6 +15,7 @@ from engine.budget import (
     stress_ratio,
     thirty_percent_rule_misleading,
 )
+from engine.costs import SCHEME_PRICE_CAPS, STATES
 from engine.loan import (
     APRA_SERVICEABILITY_BUFFER,
     assessment_rate,
@@ -22,32 +23,19 @@ from engine.loan import (
     monthly_repayment,
     stress_table,
 )
+from engine.projection import savings_runway
 from engine.tax import TAX_YEAR, take_home
+from ui.calculator_state import OTHER_COST_KEYS, saved_inputs, summary_from_inputs
 from ui.components import get_snapshot, md_safe, money, what_this_means
 
 MONTHS = 12
-LMI_LVR_THRESHOLD = 80  # lenders usually charge LMI above 80% LVR (Moneysmart, LMI glossary)
 
 default_rate = get_snapshot().get("avg_variable_rate_new")
 
-DEFAULT_INPUTS = {
-    "borrowers": 1,
-    "income_0": 100_000,
-    "income_1": 80_000,
-    "help_0": False,
-    "help_1": False,
-    "dependants": 0,
-    "preset": "Moderate",
-    "other_debts": 0,
-    "price": 750_000,
-    "deposit": 150_000,
-    "rate": float(default_rate.value),
-    "years": 30,
-}
 # Streamlit discards widget values when you leave a page. So every input is saved
 # into a plain dict ("calculator_inputs") the moment it changes, and all widgets
 # are restored from that dict at the start of each run.
-saved = st.session_state.setdefault("calculator_inputs", dict(DEFAULT_INPUTS))
+saved = saved_inputs()
 for name, value in saved.items():
     st.session_state[f"calc_{name}"] = value
 
@@ -62,7 +50,7 @@ def remember(name: str) -> dict:
 
 
 st.title("Calculator")
-st.write("Fill in the three sections below. Results update as you type.")
+st.write("Fill in the four sections below. Results update as you type.")
 
 # ---------------- Inputs ----------------
 with st.expander("1. Your household", expanded=True, icon=":material/group:"):
@@ -106,13 +94,68 @@ with st.expander("3. Your loan", icon=":material/home:"):
     )
     years = st.slider("Loan term (years)", min_value=10, max_value=30, **remember("years"))
 
+with st.expander("4. Upfront costs & savings", icon=":material/savings:"):
+    state = st.selectbox(
+        "State",
+        list(STATES),
+        format_func=lambda s: s if STATES[s]["supported"] else f"{s} (coming soon)",
+        **remember("state"),
+    )
+    nsw = STATES[state]["supported"]
+    if not nsw:
+        st.warning(
+            f"Stamp duty for {state} isn't built yet, so it's left out of the costs below. "
+            f"Use the [official {state} duty calculator]({STATES[state]['calculator']}).",
+            icon=":material/construction:",
+        )
+
+    col_savings, col_habit = st.columns(2)
+    col_savings.number_input(
+        "Total savings available ($)", min_value=0, step=5_000, **remember("savings"),
+        help="Everything you have for the purchase: deposit, costs and anything left over.",
+    )
+    col_habit.number_input(
+        "Monthly savings habit ($, optional)", min_value=0, step=100, **remember("savings_habit"),
+        placeholder="Leave blank to save the whole surplus",
+        help="In the Stress Scenarios projection, at most this much of any monthly surplus is saved; "
+        "the rest is assumed spent. Leave blank to assume the whole surplus is saved.",
+    )
+
+    col_fhb, col_lmi = st.columns(2)
+    col_fhb.checkbox("First home buyer", **remember("first_home_buyer"), disabled=not nsw)
+    col_lmi.toggle(
+        "Add any LMI to the loan", **remember("capitalise_lmi"),
+        help="Most borrowers add LMI to the loan. Turn off to pay it upfront from savings.",
+    )
+    st.checkbox(
+        "Using the 5% Deposit Scheme (first home buyers)", **remember("use_scheme"), disabled=not nsw,
+        help="Australian Government scheme: buy with a 5% deposit (2% for single parents) and no LMI, "
+        "if the price is under the cap for your area.",
+    )
+    if saved["use_scheme"] and nsw:
+        col_loc, col_parent = st.columns(2, vertical_alignment="bottom")
+        col_loc.selectbox(
+            "Where are you buying?", list(SCHEME_PRICE_CAPS),
+            format_func=lambda loc: f"{loc} (cap ${SCHEME_PRICE_CAPS[loc]:,.0f})",
+            **remember("scheme_location"),
+        )
+        col_parent.checkbox("Single parent or guardian (2% deposit)", **remember("single_parent"))
+
+    st.markdown("**Other upfront costs**")
+    st.caption("Land Registry fees are official NSW 2026-27 fees. The rest are rough estimates: edit them to match your quotes.")
+    cost_items = list(OTHER_COST_KEYS.items())
+    for row in range(0, len(cost_items), 2):  # one st.columns per row keeps the order when stacked on phones
+        for column, (label, key) in zip(st.columns(2), cost_items[row:row + 2]):
+            column.number_input(f"{label} ($)", min_value=0.0, step=50.0, format="%.2f", **remember(key))
+
 # ---------------- Calculations (via engine) ----------------
 tax_results = [take_home(income, has_help) for income, has_help in people]
 gross_monthly = sum(r.gross for r in tax_results) / MONTHS
 net_monthly = sum(r.net for r in tax_results) / MONTHS
 
-loan_amount = max(0, price - deposit)
-lvr = loan_amount / price * 100 if price > 0 else 0
+summary = summary_from_inputs(saved)
+loan_amount = summary.loan
+lvr = summary.lvr
 repayment = monthly_repayment(loan_amount, rate, years)
 left_over = net_monthly - repayment - expenses - other_debts
 ratio = stress_ratio(repayment, gross_monthly)
@@ -121,6 +164,7 @@ label = stress_label(ratio)
 surplus_before_mortgage = net_monthly - expenses - other_debts
 max_borrow = borrowing_power(surplus_before_mortgage, rate, years)
 test_rate = assessment_rate(rate)
+runway = savings_runway(summary.savings_left, repayment + expenses + other_debts)
 
 st.header("Your results")
 
@@ -166,6 +210,58 @@ with st.expander("Your summary", expanded=True, icon=":material/summarize:"):
             icon=":material/warning:",
         )
 
+# ---------------- Cash needed to buy ----------------
+with st.expander("Cash needed to buy", expanded=True, icon=":material/payments:"):
+    st.info("**Your savings are not the same as your deposit.** Stamp duty, fees and sometimes LMI come out of savings first.", icon=":material/lightbulb:")
+
+    rows = [("Deposit", summary.deposit)]
+    if summary.duty is None:
+        rows.append((f"Stamp duty ({state}: not calculated yet)", 0.0))
+    else:
+        duty_label = "Stamp duty (first home buyer)" if saved["first_home_buyer"] else "Stamp duty"
+        rows.append((duty_label, summary.duty))
+    if summary.lmi and not summary.lmi_capitalised:
+        rows.append(("LMI, paid upfront (indicative estimate)", summary.lmi))
+    rows += list(summary.other_cost_items.items())
+    rows.append(("Total cash needed", summary.deposit + summary.upfront_costs))
+    st.dataframe(
+        pd.DataFrame({"Item": [r[0] for r in rows], "Amount": [money(r[1]) for r in rows]}),
+        hide_index=True, width="stretch",
+    )
+
+    col1, col2 = st.columns(2)
+    col1.metric("Total upfront costs (excl. deposit)", money(summary.upfront_costs))
+    col2.metric("Loan amount", money(summary.loan))
+    col3, col4 = st.columns(2)
+    col3.metric("Real LVR", f"{summary.lvr:.1f}%")
+    col4.metric("Savings left after buying", money(summary.savings_left))
+
+    if summary.scheme is not None:
+        (st.success if summary.scheme.applies else st.warning)(md_safe(summary.scheme.message))
+    if summary.lmi is None:
+        st.error("Your LVR is above 95%, which is usually too high for lenders mortgage insurance.")
+    elif summary.lmi > 0:
+        where = "added to your loan" if summary.lmi_capitalised else "paid upfront from savings"
+        st.warning(
+            md_safe(
+                f"LMI of about {money(summary.lmi)}, {where}. This is an **indicative estimate — actual "
+                "premiums vary by insurer and lender**."
+            )
+        )
+
+    if summary.savings_left < 0:
+        st.error(md_safe(f"You're about {money(summary.shortfall)} short of the cash needed to buy."))
+        what_this_means(
+            f"after the deposit and upfront costs your savings would be {money(summary.shortfall)} short. "
+            "You'd need a smaller deposit, a cheaper property or more savings."
+        )
+    else:
+        runway_text = "as long as you like" if runway == float("inf") else f"about {runway:.0f} months"
+        what_this_means(
+            f"after buying you'd have {money(summary.savings_left)} left as a buffer. If all income stopped, "
+            f"that would cover repayments and living costs for {runway_text}."
+        )
+
 # ---------------- Borrowing power ----------------
 with st.expander("Can you borrow this much?", icon=":material/account_balance:"):
     col1, col2 = st.columns(2)
@@ -189,10 +285,8 @@ with st.expander("Can you borrow this much?", icon=":material/account_balance:")
                 f"borrowing power at the {test_rate:.2f}% assessment rate."
             )
         )
-    if lvr > LMI_LVR_THRESHOLD:
-        st.warning(
-            f"Your LVR is above {LMI_LVR_THRESHOLD}%, so Lenders Mortgage Insurance (LMI) will likely apply."
-        )
+    if summary.lmi:
+        st.caption("The loan amount includes LMI added to the loan (see Cash needed to buy).")
 
     what_this_means(
         "lenders check you could still pay if your rate were "

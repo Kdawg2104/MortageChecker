@@ -6,6 +6,8 @@ HECS/HELP compulsory repayments. All figures are annual amounts in AUD.
 
 from dataclasses import dataclass
 
+import numpy as np
+
 TAX_YEAR = "2026-27"
 
 # --- Income tax brackets (ATO, resident rates, 2026-27) ---
@@ -109,3 +111,54 @@ def take_home(income: float, has_help: bool = False) -> TaxResult:
         help=help_amount,
         net=income - tax - medicare - help_amount,
     )
+
+
+def take_home_array(income: np.ndarray, has_help: bool = False) -> np.ndarray:
+    """Vectorised take_home(): annual net income for an array of annual gross incomes.
+
+    Same rules and constants as the functions above, written with numpy so thousands
+    of incomes (e.g. every month of every simulation) are taxed at once.
+    """
+    income = np.maximum(np.asarray(income, dtype=float), 0.0)
+
+    # Income tax: tax each bracket's slice of income at that bracket's rate
+    tax = np.zeros_like(income)
+    for i, (threshold, rate) in enumerate(TAX_BRACKETS):
+        upper = TAX_BRACKETS[i + 1][0] if i + 1 < len(TAX_BRACKETS) else np.inf
+        tax += np.clip(income - threshold, 0, upper - threshold) * rate
+
+    # Low Income Tax Offset, tapering in two steps
+    mid_value = LITO_MAX - (LITO_MID_THRESHOLD - LITO_FULL_THRESHOLD) * LITO_TAPER_1
+    lito = np.where(
+        income <= LITO_FULL_THRESHOLD,
+        LITO_MAX,
+        np.where(
+            income <= LITO_MID_THRESHOLD,
+            LITO_MAX - (income - LITO_FULL_THRESHOLD) * LITO_TAPER_1,
+            np.maximum(0.0, mid_value - (income - LITO_MID_THRESHOLD) * LITO_TAPER_2),
+        ),
+    )
+    tax = np.maximum(0.0, tax - lito)
+
+    # Medicare levy with low-income phase-in
+    medicare = np.where(
+        income <= MEDICARE_LOW_THRESHOLD,
+        0.0,
+        np.minimum((income - MEDICARE_LOW_THRESHOLD) * MEDICARE_PHASE_IN_RATE, income * MEDICARE_RATE),
+    )
+
+    # HECS/HELP, marginal system
+    if has_help:
+        help_amount = np.select(
+            [income <= HELP_THRESHOLD, income <= HELP_TIER_2_THRESHOLD, income <= HELP_TIER_3_THRESHOLD],
+            [
+                0.0,
+                (income - HELP_THRESHOLD) * HELP_TIER_1_RATE,
+                HELP_TIER_2_BASE + (income - HELP_TIER_2_THRESHOLD) * HELP_TIER_2_RATE,
+            ],
+            default=income * HELP_TOP_RATE,
+        )
+    else:
+        help_amount = 0.0
+
+    return income - tax - medicare - help_amount

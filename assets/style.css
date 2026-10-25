@@ -114,6 +114,10 @@
     gap: 0;
 }
 
+.st-key-footer p {
+    text-align: center;
+}
+
 /* ---------- Narrow screens (phones) ---------- */
 @media (max-width: 640px) {
     .st-key-hero {

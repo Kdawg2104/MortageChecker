@@ -2,9 +2,14 @@
 
 import streamlit as st
 
-from ui.components import get_snapshot
+from ui.components import get_snapshot, md_safe
 
-buffer = get_snapshot().get("apra_buffer")
+snapshot = get_snapshot()
+buffer = snapshot.get("apra_buffer")
+fhb_exempt = snapshot.get("nsw_fhbas_exempt_limit")
+fhb_concession = snapshot.get("nsw_fhbas_concession_limit")
+cap_sydney = snapshot.get("scheme_cap_sydney")
+cap_rest = snapshot.get("scheme_cap_rest_nsw")
 
 st.title("Learn the Basics")
 st.write("Short explanations of the terms the calculator uses. Each one links to an official source.")
@@ -114,9 +119,64 @@ Your deposit isn't the only money you need on the day. Common upfront costs incl
   such as application or settlement fees.
 - **Moving costs**, insurance and council or water rates adjustments.
 
-These can add tens of thousands of dollars. The calculator doesn't include them yet; they're coming
-in a later version.
+These can add tens of thousands of dollars. The Calculator works them out for NSW in
+"4. Upfront costs & savings"; other states are coming later.
 
 **Source:** [Moneysmart: buying a house](https://moneysmart.gov.au/home-loans/buying-a-house)
 """
+    )
+
+with st.expander("NSW stamp duty concessions for first home buyers", icon=":material/key:"):
+    st.markdown(
+        md_safe(
+            f"""
+Under the **First Home Buyers Assistance Scheme**, eligible first home buyers of a home in NSW pay:
+- **no stamp duty** if the price is **${fhb_exempt.value:,.0f} or less**
+- **reduced stamp duty** between ${fhb_exempt.value:,.0f} and ${fhb_concession.value:,.0f}. The saving
+  shrinks steadily as the price rises.
+- **full stamp duty** from ${fhb_concession.value:,.0f}
+
+You must never have owned residential property in Australia, and you need to move in within 12 months
+and live there for at least 12 months in a row. Thresholds are as at {fhb_exempt.as_at}.
+
+**Source:** [Revenue NSW: First Home Buyers Assistance Scheme]({fhb_exempt.url})
+"""
+        )
+    )
+
+with st.expander("How much does LMI cost?", icon=":material/shield_person:"):
+    st.markdown(
+        """
+Lenders mortgage insurance (LMI) is usually charged when you borrow more than 80% of the property's
+value. It's priced as a percentage of the loan, and that percentage jumps as your LVR rises: borrowing
+95% can cost several times more than borrowing 85%.
+
+**No insurer or regulator publishes LMI prices.** Each lender gets its own rates from its insurer. The
+Calculator uses an **indicative estimate** from a broker-published table; your lender can give you
+an exact quote. Remember, LMI protects the lender, not you.
+
+**Sources:** [Moneysmart: lenders mortgage insurance](https://moneysmart.gov.au/glossary/lenders-mortgage-insurance-lmi) ·
+[Moneysmart: save for a house deposit](https://moneysmart.gov.au/saving/save-for-a-house-deposit)
+"""
+    )
+
+with st.expander("The Australian Government 5% Deposit Scheme", icon=":material/account_balance:"):
+    st.markdown(
+        md_safe(
+            f"""
+Eligible first home buyers can buy with a **5% deposit** (single parents or legal guardians: **2%**)
+and **pay no LMI**. The government guarantees part of the loan instead. You apply through a
+participating lender.
+
+The property price must be under a cap for its location. In NSW that's:
+- **${cap_sydney.value:,.0f}** in Sydney and NSW regional centres (Central Coast, Coffs Harbour–Grafton,
+  Illawarra, Mid North Coast, Richmond–Tweed, Newcastle and Lake Macquarie)
+- **${cap_rest.value:,.0f}** in the rest of NSW
+
+A smaller deposit means a bigger loan and higher repayments, so check the Calculator's repayments and
+stress test too.
+
+**Source:** [Housing Australia: 5% Deposit Scheme property price caps]({cap_sydney.url})
+"""
+        )
     )

@@ -2,6 +2,14 @@ import json
 
 import pytest
 
+from engine.costs import (
+    FHBAS_CONCESSION_LIMIT,
+    FHBAS_EXEMPT_LIMIT,
+    NSW_LRS_MORTGAGE_FEE,
+    NSW_LRS_TRANSFER_FEE,
+    NSW_PREMIUM_THRESHOLD,
+    SCHEME_PRICE_CAPS,
+)
 from engine.loan import APRA_SERVICEABILITY_BUFFER
 from engine.market import REQUIRED_FIELDS, load_snapshot
 from engine.tax import HELP_THRESHOLD, TAX_BRACKETS
@@ -64,3 +72,13 @@ def test_help_threshold_matches_engine(snapshot):
 def test_tax_brackets_match_engine(snapshot):
     json_brackets = [(b["over"], b["rate"] / 100) for b in snapshot.get("tax_brackets").value]
     assert json_brackets == list(TAX_BRACKETS)
+
+
+def test_buying_cost_figures_match_engine(snapshot):
+    assert snapshot.get("nsw_fhbas_exempt_limit").value == FHBAS_EXEMPT_LIMIT
+    assert snapshot.get("nsw_fhbas_concession_limit").value == FHBAS_CONCESSION_LIMIT
+    assert snapshot.get("nsw_premium_threshold").value == NSW_PREMIUM_THRESHOLD
+    assert snapshot.get("scheme_cap_sydney").value == SCHEME_PRICE_CAPS["Sydney or NSW regional centre"]
+    assert snapshot.get("scheme_cap_rest_nsw").value == SCHEME_PRICE_CAPS["Rest of NSW"]
+    assert snapshot.get("nsw_lrs_transfer_fee").value == NSW_LRS_TRANSFER_FEE
+    assert snapshot.get("nsw_lrs_mortgage_fee").value == NSW_LRS_MORTGAGE_FEE

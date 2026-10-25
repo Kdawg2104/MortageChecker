@@ -1,11 +1,11 @@
 {
-  "last_updated": "24 Oct 2026",
+  "last_updated": "25 Oct 2026",
   "figures": [
     {
       "id": "cash_rate",
       "category": "Interest rates",
       "name": "RBA cash rate target",
-      "value": 4.60,
+      "value": 4.6,
       "decimals": 2,
       "unit": "%",
       "as_at": "29 Sep 2026",
@@ -41,7 +41,7 @@
       "id": "awote",
       "category": "Incomes and prices",
       "name": "Average weekly ordinary time earnings, full-time adults",
-      "value": 2083.70,
+      "value": 2083.7,
       "decimals": 2,
       "unit": "$ per week",
       "as_at": "May 2026",
@@ -198,11 +198,26 @@
       "category": "Tax",
       "name": "Resident income tax brackets, 2026-27",
       "value": [
-        {"over": 0, "rate": 0},
-        {"over": 18200, "rate": 15},
-        {"over": 45000, "rate": 30},
-        {"over": 135000, "rate": 37},
-        {"over": 190000, "rate": 45}
+        {
+          "over": 0,
+          "rate": 0
+        },
+        {
+          "over": 18200,
+          "rate": 15
+        },
+        {
+          "over": 45000,
+          "rate": 30
+        },
+        {
+          "over": 135000,
+          "rate": 37
+        },
+        {
+          "over": 190000,
+          "rate": 45
+        }
       ],
       "decimals": 0,
       "unit": "brackets",
@@ -210,6 +225,90 @@
       "source": "Australian Taxation Office",
       "url": "https://www.ato.gov.au/tax-rates-and-codes/tax-rates-australian-residents",
       "notes": "The 16% rate became 15% from 1 Jul 2026. Excludes the 2% Medicare levy."
+    },
+    {
+      "id": "nsw_fhbas_exempt_limit",
+      "category": "Buying costs (NSW)",
+      "name": "First home buyers: no stamp duty up to",
+      "value": 800000,
+      "decimals": 0,
+      "unit": "$",
+      "as_at": "1 Jul 2026",
+      "source": "Revenue NSW, First Home Buyers Assistance Scheme",
+      "url": "https://www.revenue.nsw.gov.au/taxes-duties-levies-royalties/transfer-duty/first-home-buyers",
+      "notes": "Eligible first home buyers of a home pay no transfer duty at or below this price."
+    },
+    {
+      "id": "nsw_fhbas_concession_limit",
+      "category": "Buying costs (NSW)",
+      "name": "First home buyers: reduced stamp duty below",
+      "value": 1000000,
+      "decimals": 0,
+      "unit": "$",
+      "as_at": "1 Jul 2026",
+      "source": "Revenue NSW, First Home Buyers Assistance Scheme",
+      "url": "https://www.revenue.nsw.gov.au/taxes-duties-levies-royalties/transfer-duty/first-home-buyers",
+      "notes": "Between $800,000 and $1,000,000 the concession phases out; full duty applies from $1,000,000."
+    },
+    {
+      "id": "nsw_premium_threshold",
+      "category": "Buying costs (NSW)",
+      "name": "Premium property duty threshold",
+      "value": 3870000,
+      "decimals": 0,
+      "unit": "$",
+      "as_at": "1 Jul 2026",
+      "source": "Revenue NSW, How to calculate transfer duty",
+      "url": "https://www.revenue.nsw.gov.au/taxes-duties-levies-royalties/transfer-duty/understanding-transfer-duty/calculate-transfer-duty",
+      "notes": "Above this, residential duty is $194,137 plus $7 per $100. Thresholds are CPI-indexed each 1 July."
+    },
+    {
+      "id": "scheme_cap_sydney",
+      "category": "Buying costs (NSW)",
+      "name": "5% Deposit Scheme price cap: Sydney and NSW regional centres",
+      "value": 1500000,
+      "decimals": 0,
+      "unit": "$",
+      "as_at": "1 Oct 2025",
+      "source": "Housing Australia, 5% Deposit Scheme property price caps",
+      "url": "https://firsthomebuyers.gov.au/australian-government-5-percent-deposit-scheme/property-price-caps",
+      "notes": "Regional centres: Central Coast, Coffs Harbour-Grafton, Illawarra, Mid North Coast, Richmond-Tweed, Newcastle and Lake Macquarie. Checked 25 Oct 2026."
+    },
+    {
+      "id": "scheme_cap_rest_nsw",
+      "category": "Buying costs (NSW)",
+      "name": "5% Deposit Scheme price cap: rest of NSW",
+      "value": 800000,
+      "decimals": 0,
+      "unit": "$",
+      "as_at": "1 Oct 2025",
+      "source": "Housing Australia, 5% Deposit Scheme property price caps",
+      "url": "https://firsthomebuyers.gov.au/australian-government-5-percent-deposit-scheme/property-price-caps",
+      "notes": "Minimum deposit 5% (2% for single parents), with no LMI. Checked 25 Oct 2026."
+    },
+    {
+      "id": "nsw_lrs_transfer_fee",
+      "category": "Buying costs (NSW)",
+      "name": "Land Registry transfer fee",
+      "value": 182.73,
+      "decimals": 2,
+      "unit": "$",
+      "as_at": "1 Jul 2026",
+      "source": "NSW Land Registry Services, 2026/27 Fees Update",
+      "url": "https://nswlrs.com.au/services/fees-payments/fees",
+      "notes": "Registering the transfer of title, including GST."
+    },
+    {
+      "id": "nsw_lrs_mortgage_fee",
+      "category": "Buying costs (NSW)",
+      "name": "Land Registry mortgage registration fee",
+      "value": 182.73,
+      "decimals": 2,
+      "unit": "$",
+      "as_at": "1 Jul 2026",
+      "source": "NSW Land Registry Services, 2026/27 Fees Update",
+      "url": "https://nswlrs.com.au/services/fees-payments/fees",
+      "notes": "Registering the mortgage on the title, including GST."
     }
   ]
 }

@@ -3,7 +3,9 @@
 A Streamlit app that helps Australians see whether a mortgage is realistic for their income, lifestyle and
 the risk of rate rises. General information only, not financial advice.
 
-> A fuller README (screenshots, deployment, architecture) is planned for Phase 5.
+> **Status: work in progress.** Phases 1–3 (calculator, stress scenarios, statement analyser, Monte Carlo
+> risk simulator) are built; insights, quick/advanced modes and deployment are still to come. A fuller README
+> (screenshots, deployment, architecture) is planned for Phase 5.
 
 ## Features
 

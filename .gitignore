@@ -6,6 +6,11 @@ __pycache__/
 .agents/
 .claude/skills/
 
+# Secrets: never commit keys or passwords
+.env
+.env.*
+.streamlit/secrets.toml
+
 # Privacy: never commit real bank statements (see CLAUDE.md privacy rules)
 /private/
 /statements/

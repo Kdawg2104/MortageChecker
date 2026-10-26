@@ -16,6 +16,7 @@ page = st.navigation(
         st.Page("app_pages/home.py", title="Home", icon=":material/home:", default=True),
         st.Page("app_pages/calculator.py", title="Calculator", icon=":material/calculate:"),
         st.Page("app_pages/stress_scenarios.py", title="Stress Scenarios", icon=":material/thunderstorm:"),
+        st.Page("app_pages/risk_simulator.py", title="Risk Simulator", icon=":material/casino:"),
         st.Page("app_pages/market_snapshot.py", title="Market Snapshot", icon=":material/monitoring:"),
         st.Page("app_pages/learn.py", title="Learn the Basics", icon=":material/school:"),
         st.Page("app_pages/about.py", title="About & Disclaimer", icon=":material/info:"),

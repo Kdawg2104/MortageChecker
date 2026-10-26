@@ -38,5 +38,10 @@ KEY_ASSUMPTIONS = [
     "Borrowing power is a **simplified estimate**: your whole monthly surplus is assumed to go "
     "on repayments, tested at your rate plus the APRA buffer. Real lenders use their own models.",
     "The 30% and 40% mortgage stress lines are **rules of thumb**, not lending rules.",
+    "The Risk Simulator re-samples **past** RBA cash rate, ABS CPI and Wage Price Index movements (from Oct 1997, "
+    "when the WPI starts, or from 2010) in 12-month blocks. It is **not a forecast**. Your lender's margin over the "
+    "cash rate stays constant, rates have no pull back towards a 'normal' level, and tax thresholds aren't indexed.",
+    "The job-loss chance in the Risk Simulator (3% a year per earner, 3 months without income) is a **placeholder "
+    "assumption** you can change.",
     "Market figures are as at the dates shown on the Market Snapshot page and will go out of date.",
 ]

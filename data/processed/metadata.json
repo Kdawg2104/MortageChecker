@@ -1,0 +1,93 @@
+{
+  "downloaded": "2026-10-26",
+  "sources": {
+    "rba_a2.csv": {
+      "url": "https://www.rba.gov.au/statistics/tables/csv/a2-data.csv",
+      "series": {
+        "ARBAMPCNCRT": "New cash rate target (decisions)"
+      }
+    },
+    "rba_f5.csv": {
+      "url": "https://www.rba.gov.au/statistics/tables/csv/f5-data.csv",
+      "series": {
+        "FILRHLBVS": "Standard variable housing rate, owner-occupier"
+      }
+    },
+    "rba_f6.csv": {
+      "url": "https://www.rba.gov.au/statistics/tables/csv/f6-data.csv",
+      "series": {
+        "FLRHOFVA": "Variable rate, new owner-occupier loans"
+      }
+    },
+    "abs_cpi_quarterly_640101.xlsx": {
+      "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/sep-quarter-2025/640101.xlsx",
+      "series": {
+        "A2325846C": "CPI all groups, Australia (quarterly)"
+      }
+    },
+    "abs_cpi_monthly_640101.xlsx": {
+      "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/aug-2026/640101.xlsx",
+      "series": {
+        "A130393720C": "CPI all groups, Australia (monthly)"
+      }
+    },
+    "abs_wpi_634501.xlsx": {
+      "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/wage-price-index-australia/jun-2026/634501.xlsx",
+      "series": {
+        "A2603609J": "Wage Price Index, hourly rates excl. bonuses, private and public, all industries"
+      }
+    }
+  },
+  "series": {
+    "cash_rate": {
+      "start": "1990-01",
+      "end": "2026-09",
+      "months": 441
+    },
+    "cpi_quarterly_index": {
+      "start": "1948-09",
+      "end": "2025-09",
+      "months": 309
+    },
+    "cpi_monthly_index": {
+      "start": "2024-04",
+      "end": "2026-08",
+      "months": 29
+    },
+    "cpi_growth": {
+      "start": "1948-10",
+      "end": "2026-08",
+      "months": 935
+    },
+    "wage_price_index": {
+      "start": "1997-09",
+      "end": "2026-06",
+      "months": 116
+    },
+    "wage_growth": {
+      "start": "1997-10",
+      "end": "2026-06",
+      "months": 345
+    },
+    "standard_variable_rate": {
+      "start": "1959-01",
+      "end": "2026-09",
+      "months": 813
+    },
+    "new_loans_variable_rate": {
+      "start": "2019-07",
+      "end": "2026-08",
+      "months": 86
+    }
+  },
+  "history": {
+    "start": "1997-10",
+    "end": "2026-06",
+    "months": 345
+  },
+  "notes": [
+    "Quarterly series are spread evenly across their three months: (1 + g)^(1/3) - 1 per month.",
+    "CPI uses the final quarterly CPI (to Sep 2025) and the monthly CPI from 2025-10.",
+    "history.csv covers only months where cash rate, CPI and wages all exist."
+  ]
+}

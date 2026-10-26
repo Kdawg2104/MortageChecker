@@ -14,6 +14,7 @@ MortageChecker/
 │   ├── home.py            Hero, what the app does, market at a glance, disclaimer box
 │   ├── calculator.py      Inputs (incl. upfront costs & savings) and results in expanders
 │   ├── stress_scenarios.py Preset + custom life-event scenarios over 36 months, using Calculator inputs
+│   ├── risk_simulator.py  Monte Carlo results: probabilities, fan charts, worst 5%, single-guess comparison
 │   ├── market_snapshot.py Every market figure with date and source
 │   ├── learn.py           Plain-English explainers with official links
 │   └── about.py           Full disclaimer, key assumptions, about the project
@@ -28,8 +29,12 @@ MortageChecker/
 │   ├── costs.py           NSW stamp duty + FHBAS, indicative LMI, 5% Deposit Scheme, fees, purchase_summary
 │   ├── projection.py      Vectorised month-by-month projection on input ARRAYS (base for Phase 3)
 │   ├── scenarios.py       Life events + stress presets that build projection input arrays
+│   ├── simulation.py      Monte Carlo: block bootstrap of history, random job loss, runs projection.py
 │   └── market.py          Loads and validates data/market_snapshot.json
 ├── data/market_snapshot.json  SINGLE source for all displayed market figures
+├── data/raw/              Original RBA/ABS downloads (from scripts/update_data.py)
+├── data/processed/        Clean monthly CSVs + metadata.json; history.csv feeds the simulator
+├── scripts/update_data.py Downloads official RBA (A2, F5, F6) and ABS (CPI, WPI) data and processes it
 ├── assets/style.css       ALL custom CSS (loaded once by ui.components.load_css)
 ├── assets/hero.jpg        Hero photo (added by the author; gradient fallback if missing)
 ├── .streamlit/config.toml Theme
@@ -41,6 +46,8 @@ MortageChecker/
 - Environment: `.venv` with Python 3.14.
   - Run the app: `.venv/bin/streamlit run app.py`
   - Run the tests: `.venv/bin/python -m pytest`
+  - Refresh historical data (manual, needs internet): `.venv/bin/python scripts/update_data.py`
+- **The app never downloads data at runtime.** It reads data/processed/ only.
 
 ## Streamlit gotchas (learned the hard way)
 
@@ -59,11 +66,19 @@ MortageChecker/
    - **1.5 Done:** multi-page layout, market snapshot, learning hub and disclaimers.
 2. **Done:** upfront costs (NSW duty, LMI, 5% Deposit Scheme, fees), savings buffer, life events and
    combined stress scenarios.
-3. Monte Carlo simulation of rates, inflation and wage growth using historical RBA/ABS data.
+3. **Done:** Monte Carlo simulation of rates, inflation and wage growth using historical RBA/ABS data
+   (Risk Simulator page). History windows: since Oct 1997 (WPI start) or since 2010.
 4. Insights: probability of stress, savings runway, break points, risk-driver chart, "what to change" suggestions.
 5. Quick/advanced modes, deployment to Streamlit Community Cloud, GitHub README.
 
 Only build the phase that is asked for.
+
+## Data notes
+
+- Cash rate = month-end target built from RBA A2 decisions (F1.1 is only a monthly average).
+- ABS replaced quarterly CPI with monthly CPI: quarterly (final release Sep qtr 2025) is used to Sep 2025,
+  monthly from Oct 2025. Quarterly series are spread evenly: (1 + g)^(1/3) - 1 per month.
+- The python.org Python has no CA bundle, so update_data.py uses certifi (certificate checks stay on).
 
 ## Phase 3 foundation
 

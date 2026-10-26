@@ -180,3 +180,23 @@ stress test too.
 """
         )
     )
+
+with st.expander("What is a Monte Carlo simulation?", icon=":material/casino:"):
+    st.markdown(
+        """
+A **Monte Carlo simulation** answers "what are the chances?" by playing out thousands of possible futures
+instead of one guess.
+
+The Risk Simulator builds each future from **real Australian history**: it picks random 12-month stretches of
+past cash rate changes, inflation and wage growth and joins them together. Keeping each stretch's months together
+keeps their real relationships, like rate rises tending to come with high inflation. Then it runs your budget
+through every future and counts how often things go wrong, e.g. "savings run out in 1 in 8 futures".
+
+It shows a **range of outcomes and how likely they are**, not a prediction. The future can always do something
+history hasn't.
+
+**Sources for the data:** [RBA: cash rate decisions](https://www.rba.gov.au/statistics/cash-rate/) ·
+[ABS: Consumer Price Index](https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/latest-release) ·
+[ABS: Wage Price Index](https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/wage-price-index-australia/latest-release)
+"""
+    )

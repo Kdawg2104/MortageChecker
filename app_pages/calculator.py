@@ -26,7 +26,7 @@ from engine.loan import (
 from engine.projection import savings_runway
 from engine.tax import TAX_YEAR, take_home
 from ui.calculator_state import OTHER_COST_KEYS, saved_inputs, summary_from_inputs
-from ui.components import get_snapshot, md_safe, money, what_this_means
+from ui.components import get_snapshot, md_safe, money, statement_badge, what_this_means
 
 MONTHS = 12
 
@@ -50,6 +50,7 @@ def remember(name: str) -> dict:
 
 
 st.title("Calculator")
+statement_badge()
 st.write("Fill in the four sections below. Results update as you type.")
 
 # ---------------- Inputs ----------------

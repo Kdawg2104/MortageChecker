@@ -1,0 +1,149 @@
+# Statement Analyser categorisation rules. Edit freely: plain text, top to bottom, first match wins
+# within each pass (see below).
+#
+#   name:      category shown in the app
+#   group:     how analyse.py totals it: income, housing, essential, discretionary, debt, transfer
+#   direction: credit (money in), debit (money out) or any
+#   merchants: specific merchant/payer names      -> HIGH confidence
+#   keywords:  generic words                      -> MEDIUM confidence
+#
+# Matching is on whole words in the (upper-cased, redacted) description, in two passes:
+# every category's merchants first, then every category's keywords. So a specific merchant
+# ("YOUTUBE PREMIUM") beats a generic word in an earlier category ("PREMIUM"). No bank names.
+
+categories:
+  - name: "Transfers (own accounts)"
+    group: transfer
+    direction: any
+    merchants: ["TRANSFER TO SAVINGS", "TRANSFER FROM SAVINGS", "INTERNAL TRANSFER", "TRANSFER TO OFFSET",
+                "TRANSFER FROM OFFSET", "TFR TO OWN", "TFR FROM OWN", "OWN ACCOUNT"]
+    keywords: ["TO SAVINGS", "FROM SAVINGS", "OFFSET ACCT", "INTERNAL TFR"]
+
+  - name: "Income – salary"
+    group: income
+    direction: credit
+    merchants: []
+    keywords: ["SALARY", "PAYROLL", "WAGES", "WAGE ", "PAY/SALARY", "NET PAY"]
+
+  - name: "Income – other"
+    group: income
+    direction: credit
+    merchants: ["UBER BV", "DOORDASH", "MENULOG DRIVER", "AIRTASKER", "CENTRELINK", "SERVICES AUSTRALIA", "ATO REFUND"]
+    keywords: ["PAYOUT", "REFUND", "INTEREST", "DIVIDEND", "REBATE"]
+
+  - name: "Debt – BNPL"
+    group: debt
+    direction: debit
+    merchants: ["AFTERPAY", "ZIP PAY", "ZIPPAY", "ZIP MONEY", "KLARNA", "HUMM", "LATITUDE PAY", "PAYPAL PAY IN 4", "OPENPAY"]
+    keywords: ["BUY NOW PAY LATER"]
+
+  - name: "Debt – credit card"
+    group: debt
+    direction: debit
+    merchants: ["CREDIT CARD PAYMENT"]
+    keywords: ["CREDIT CARD", "CC PAYMENT", "CARD REPAYMENT"]
+
+  - name: "Debt – car/personal loan"
+    group: debt
+    direction: debit
+    merchants: ["CAR LOAN", "PERSONAL LOAN", "DRIVEFINANCE", "MONEY3", "NOW FINANCE", "PLENTI"]
+    keywords: ["LOAN REPAYMENT", "FINANCE REPAYMENT"]
+
+  - name: "Rent/mortgage"
+    group: housing
+    direction: debit
+    merchants: ["REALTY", "PROPERTY MANAGEMENT", "REAL ESTATE", "RENTAL", "STRATA"]
+    keywords: ["RENT", "MORTGAGE", "HOME LOAN"]
+
+  - name: "Gambling"
+    group: discretionary
+    direction: debit
+    merchants: ["SPORTSBET", "TAB NSW", "TABCORP", "LADBROKES", "NEDS", "BET365", "POINTSBET", "BETFAIR", "LOTTERIES",
+                "THE LOTT", "BLUEBET", "PALMERBET"]
+    keywords: ["CASINO", "BETTING", "POKIES"]
+
+  - name: "Fees"
+    group: essential
+    direction: debit
+    merchants: ["DISHONOUR FEE", "OVERDRAWN", "OVERDRAFT FEE", "ACCOUNT FEE", "ATM FEE", "LATE PAYMENT FEE"]
+    keywords: ["FEE"]
+
+  - name: "Cash withdrawals"
+    group: discretionary
+    direction: debit
+    merchants: ["ATM WITHDRAWAL", "CASH WITHDRAWAL", "CASH OUT"]
+    keywords: ["ATM"]
+
+  - name: "Utilities"
+    group: essential
+    direction: debit
+    merchants: ["ORIGIN ENERGY", "AGL", "ENERGYAUSTRALIA", "RED ENERGY", "ALINTA", "SIMPLY ENERGY", "SYDNEY WATER",
+                "HUNTER WATER", "JEMENA", "ACTEWAGL"]
+    keywords: ["ENERGY", "ELECTRICITY", "WATER", "GAS BILL", "COUNCIL RATES"]
+
+  - name: "Phone/internet"
+    group: essential
+    direction: debit
+    merchants: ["TELSTRA", "OPTUS", "VODAFONE", "TPG", "IINET", "AUSSIE BROADBAND", "BELONG", "AMAYSIM", "BOOST MOBILE",
+                "SUPERLOOP", "FELIX MOBILE"]
+    keywords: ["MOBILE", "INTERNET", "BROADBAND", "NBN"]
+
+  - name: "Insurance"
+    group: essential
+    direction: debit
+    merchants: ["NRMA", "AAMI", "BUDGET DIRECT", "ALLIANZ", "SUNCORP", "YOUI", "MEDIBANK", "BUPA", "HCF", "NIB", "AHM",
+                "GIO", "QBE"]
+    keywords: ["INSURANCE", "PREMIUM"]
+
+  - name: "Childcare/education"
+    group: essential
+    direction: debit
+    merchants: ["CHILDCARE", "CHILD CARE", "GOODSTART", "KINDERGARTEN", "OSHC"]
+    keywords: ["SCHOOL", "TUITION", "UNIVERSITY", "TAFE", "EDUCATION"]
+
+  - name: "Transport/fuel"
+    group: essential
+    direction: debit
+    merchants: ["AMPOL", "BP ", "SHELL", "CALTEX", "7-ELEVEN FUEL", "UNITED PETROLEUM", "OPAL", "TRANSPORTFORNSW",
+                "LINKT", "E-TOLL", "MYKI", "GO CARD", "UBER *TRIP", "DIDI", "13CABS"]
+    keywords: ["FUEL", "PETROL", "PARKING", "TOLL", "REGO", "TRAIN", "BUS "]
+
+  - name: "Groceries"
+    group: essential
+    direction: debit
+    merchants: ["WOOLWORTHS", "COLES", "ALDI", "IGA", "HARRIS FARM", "FOODWORKS", "COSTCO"]
+    keywords: ["SUPERMARKET", "GROCER", "BUTCHER", "BAKERY"]
+
+  - name: "Health"
+    group: essential
+    direction: debit
+    merchants: ["CHEMIST WAREHOUSE", "PRICELINE", "TERRYWHITE", "FITNESS FIRST", "ANYTIME FITNESS", "MEDICAL CENTRE",
+                "PATHOLOGY"]
+    keywords: ["PHARMACY", "CHEMIST", "DOCTOR", "DENTAL", "MEDICAL", "PHYSIO", "GYM"]
+
+  - name: "Subscriptions"
+    group: discretionary
+    direction: debit
+    merchants: ["NETFLIX", "SPOTIFY", "DISNEY PLUS", "STAN.COM", "STAN ", "BINGE", "KAYO", "YOUTUBE PREMIUM", "APPLE.COM/BILL",
+                "AMAZON PRIME", "PARAMOUNT", "AUDIBLE"]
+    keywords: ["SUBSCRIPTION", "MEMBERSHIP"]
+
+  - name: "Dining/takeaway"
+    group: discretionary
+    direction: debit
+    merchants: ["UBER *EATS", "UBER EATS", "MENULOG", "DOORDASH", "DELIVEROO", "MCDONALDS", "KFC", "HUNGRY JACKS",
+                "GUZMAN Y GOMEZ", "GRILLD", "DOMINOS", "OPORTO", "NANDOS", "SUBWAY", "STARBUCKS"]
+    keywords: ["CAFE", "RESTAURANT", "PIZZA", "SUSHI", "BAR ", "PUB "]
+
+  - name: "Shopping"
+    group: discretionary
+    direction: debit
+    merchants: ["KMART", "TARGET", "BIG W", "JB HI-FI", "AMAZON", "MYER", "DAVID JONES", "BUNNINGS", "OFFICEWORKS",
+                "HARVEY NORMAN", "THE GOOD GUYS", "IKEA", "UNIQLO", "COTTON ON", "EBAY"]
+    keywords: ["STORE", "SHOP", "OUTLET"]
+
+  - name: "Other"
+    group: discretionary
+    direction: any
+    merchants: []
+    keywords: []

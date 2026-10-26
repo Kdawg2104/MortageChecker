@@ -17,7 +17,10 @@ with hero_container():
         "and the risk of rate rises, before a lender tells you.</p>",
         unsafe_allow_html=True,
     )
-    if st.button("Start the calculator", type="primary", icon=":material/arrow_forward:"):
+    col_main, col_alt = st.columns([1, 1], gap="small", width=420)
+    if col_main.button("Analyse your statements", type="primary", icon=":material/receipt_long:"):
+        st.switch_page("app_pages/statement_analyser.py")
+    if col_alt.button("Or use the calculator", icon=":material/calculate:"):
         st.switch_page("app_pages/calculator.py")
 st.markdown(f'<p class="mrc-photo-credit">{HERO_PHOTO_CREDIT}</p>', unsafe_allow_html=True)
 

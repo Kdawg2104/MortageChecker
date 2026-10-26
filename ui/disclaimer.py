@@ -41,6 +41,8 @@ KEY_ASSUMPTIONS = [
     "The Risk Simulator re-samples **past** RBA cash rate, ABS CPI and Wage Price Index movements (from Oct 1997, "
     "when the WPI starts, or from 2010) in 12-month blocks. It is **not a forecast**. Your lender's margin over the "
     "cash rate stays constant, rates have no pull back towards a 'normal' level, and tax thresholds aren't indexed.",
+    "The Statement Analyser sorts transactions with **keyword rules**, which can be wrong: review them before using "
+    "the numbers. 3 months of statements can miss annual costs, and gross income is **estimated** from take-home pay.",
     "The job-loss chance in the Risk Simulator (3% a year per earner, 3 months without income) is a **placeholder "
     "assumption** you can change.",
     "Market figures are as at the dates shown on the Market Snapshot page and will go out of date.",

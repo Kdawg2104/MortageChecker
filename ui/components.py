@@ -127,6 +127,15 @@ def disclaimer_box() -> None:
     st.page_link(ABOUT_PAGE, label="Read the full disclaimer", icon=":material/info:")
 
 
+def statement_badge() -> None:
+    """Shown on pages that use figures copied from the Statement Analyser."""
+    if st.session_state.get("statement_applied"):
+        with st.container(border=True):
+            st.markdown(":material/receipt_long: **Using figures from your statements.** Income, living costs "
+                        "and debts come from the Statement Analyser; you can still edit them here.")
+            st.page_link("app_pages/statement_analyser.py", label="Review your statement figures", icon=":material/arrow_forward:")
+
+
 def footer() -> None:
     """One-line disclaimer shown at the bottom of every page."""
     with st.container(key="footer"):

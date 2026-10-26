@@ -30,7 +30,7 @@ from engine.simulation import (
     run_simulation,
 )
 from ui.calculator_state import calculator_visited, household_from_inputs, saved_inputs
-from ui.components import get_snapshot, md_safe, money, what_this_means
+from ui.components import get_snapshot, md_safe, money, statement_badge, what_this_means
 
 METADATA_PATH = Path(__file__).resolve().parent.parent / "data" / "processed" / "metadata.json"
 SIM_CHOICES = (1_000, 5_000, 10_000)
@@ -91,6 +91,7 @@ cash_rate = get_snapshot().get("cash_rate")
 metadata = load_metadata()
 
 st.title("Risk Simulator")
+statement_badge()
 st.write(
     "Instead of testing one guess, this simulates thousands of possible futures for interest rates, "
     "inflation and wages, built from real Australian history, and counts how often your household gets into trouble."

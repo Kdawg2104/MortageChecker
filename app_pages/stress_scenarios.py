@@ -23,7 +23,7 @@ from engine.scenarios import (
     run_scenario,
 )
 from ui.calculator_state import calculator_visited, household_from_inputs, saved_inputs
-from ui.components import md_safe, money, what_this_means
+from ui.components import md_safe, money, statement_badge, what_this_means
 
 CUSTOM = "custom"
 SCENARIO_NAMES = {**{key: preset.name for key, preset in PRESETS.items()}, CUSTOM: "Custom"}
@@ -43,6 +43,7 @@ events_by_scenario = st.session_state.setdefault(
 )
 
 st.title("Stress Scenarios")
+statement_badge()
 st.write(
     f"What happens to your savings over the next {DEFAULT_MONTHS} months if things go wrong? "
     "Each scenario starts with the buffer you'd have left after buying."

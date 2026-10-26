@@ -19,6 +19,19 @@
     color: #ffffff !important;
 }
 
+/* Secondary hero button: outlined, so it reads on the dark background */
+.st-key-hero [data-testid="stBaseButton-secondary"] {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    color: #ffffff;
+}
+
+.st-key-hero [data-testid="stBaseButton-secondary"]:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #ffffff;
+    color: #ffffff;
+}
+
 .st-key-hero h1 {
     font-size: 3rem;
     line-height: 1.1;

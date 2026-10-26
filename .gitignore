@@ -5,3 +5,18 @@ __pycache__/
 .pytest_cache/
 .agents/
 .claude/skills/
+
+# Privacy: never commit real bank statements (see CLAUDE.md privacy rules)
+/private/
+/statements/
+*.ofx
+*.qif
+*.pdf
+*.csv
+# ...except synthetic samples and public RBA/ABS data
+!data/samples/
+!data/samples/**
+!data/processed/
+!data/processed/**
+!data/raw/
+!data/raw/**

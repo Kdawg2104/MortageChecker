@@ -11,7 +11,8 @@ knows Python from university.
 MortageChecker/
 ├── app.py                 Entry point: page config, CSS, first-visit disclaimer dialog, st.navigation, footer
 ├── app_pages/             One file per page (display only)
-│   ├── home.py            Hero, what the app does, market at a glance, disclaimer box
+│   ├── home.py            Hero (main CTA: Statement Analyser), what the app does, market at a glance
+│   ├── statement_analyser.py Sample/upload statements -> review -> "Use these numbers" pre-fills the Calculator
 │   ├── calculator.py      Inputs (incl. upfront costs & savings) and results in expanders
 │   ├── stress_scenarios.py Preset + custom life-event scenarios over 36 months, using Calculator inputs
 │   ├── risk_simulator.py  Monte Carlo results: probabilities, fan charts, worst 5%, single-guess comparison
@@ -21,6 +22,8 @@ MortageChecker/
 ├── ui/                    Shared display helpers (no calculations)
 │   ├── components.py      money(), md_safe(), cards, hero, footer, disclaimer dialog
 │   ├── calculator_state.py Calculator inputs in session state + household_from_inputs() (shared by pages)
+│   ├── privacy.py         uploads_allowed() (MRC_ALLOW_UPLOADS), clear_statement_data()
+│   ├── charts.py          Plotly template "mrc" matching the theme
 │   └── disclaimer.py      Disclaimer and assumptions wording (single source)
 ├── engine/                All calculations. Pure Python, NO Streamlit imports
 │   ├── tax.py             AU resident tax 2026-27 (scalar take_home + vectorised take_home_array)
@@ -30,11 +33,15 @@ MortageChecker/
 │   ├── projection.py      Vectorised month-by-month projection on input ARRAYS (base for Phase 3)
 │   ├── scenarios.py       Life events + stress presets that build projection input arrays
 │   ├── simulation.py      Monte Carlo: block bootstrap of history, random job loss, runs projection.py
-│   └── market.py          Loads and validates data/market_snapshot.json
+│   ├── market.py          Loads and validates data/market_snapshot.json
+│   └── statements/        Statement Analyser: redact.py, parse.py (CSV/PDF), categorise.py, analyse.py, accuracy.py
 ├── data/market_snapshot.json  SINGLE source for all displayed market figures
+├── data/categories.yaml   Editable keyword rules for statement categorisation
+├── data/samples/          SYNTHETIC statements ("Sample Bank") + ground truth, from scripts/make_samples.py
 ├── data/raw/              Original RBA/ABS downloads (from scripts/update_data.py)
 ├── data/processed/        Clean monthly CSVs + metadata.json; history.csv feeds the simulator
 ├── scripts/update_data.py Downloads official RBA (A2, F5, F6) and ABS (CPI, WPI) data and processes it
+├── scripts/make_samples.py Generates the synthetic sample statements (needs requirements-dev.txt)
 ├── assets/style.css       ALL custom CSS (loaded once by ui.components.load_css)
 ├── assets/hero.jpg        Hero photo (added by the author; gradient fallback if missing)
 ├── .streamlit/config.toml Theme
@@ -47,6 +54,8 @@ MortageChecker/
   - Run the app: `.venv/bin/streamlit run app.py`
   - Run the tests: `.venv/bin/python -m pytest`
   - Refresh historical data (manual, needs internet): `.venv/bin/python scripts/update_data.py`
+  - Local use with statement uploads: `MRC_ALLOW_UPLOADS=1 .venv/bin/streamlit run app.py`
+  - Regenerate samples + accuracy report: `.venv/bin/python scripts/make_samples.py --report`
 - **The app never downloads data at runtime.** It reads data/processed/ only.
 
 ## Streamlit gotchas (learned the hard way)
@@ -66,6 +75,7 @@ MortageChecker/
    - **1.5 Done:** multi-page layout, market snapshot, learning hub and disclaimers.
 2. **Done:** upfront costs (NSW duty, LMI, 5% Deposit Scheme, fees), savings buffer, life events and
    combined stress scenarios.
+   - **2.5 Done:** Statement Analyser (synthetic demo data, local-only processing, rules-based categories).
 3. **Done:** Monte Carlo simulation of rates, inflation and wage growth using historical RBA/ABS data
    (Risk Simulator page). History windows: since Oct 1997 (WPI start) or since 2010.
 4. Insights: probability of stress, savings runway, break points, risk-driver chart, "what to change" suggestions.
@@ -87,6 +97,31 @@ arrays (rate, per-borrower income multiplier, expenses, one-off costs) that may 
 dimensions, e.g. `(n_sims, months)`; it loops only over months, never simulations, and taxes income with
 `take_home_array`. `tests/test_projection.py::test_batched_inputs_match_single_runs` guards this.
 `engine/scenarios.py` events edit those arrays, so Phase 3 can reuse them as random shocks.
+
+## Privacy rules (Statement Analyser) — non-negotiable
+
+1. Statement data is processed IN MEMORY ONLY. Never write uploaded files or parsed transactions to disk,
+   logs, caches (no st.cache_data on statement data), databases or temp files.
+2. No network calls during parsing/categorisation. No external APIs, no AI services. Everything runs locally.
+3. Two modes controlled by a setting (environment variable MRC_ALLOW_UPLOADS, default OFF):
+   - OFF (default, used for any cloud deployment): upload widget hidden; only sample statements available;
+     show a note: "Upload is disabled in the online demo for privacy. Run the app locally to analyse your own statements."
+   - ON (local use only): upload enabled. Show a clear notice before upload: processed on this computer only,
+     never stored, cleared when you close the tab or click "Clear my data".
+4. Strip sensitive details immediately after parsing: account numbers, BSBs, card numbers, names, addresses,
+   and reference numbers in descriptions (regex-based redaction). Never display raw statement headers.
+5. "Clear my data" button that wipes all statement data from st.session_state.
+6. Disable Streamlit telemetry: in .streamlit/config.toml set [browser] gatherUsageStats = false.
+7. Prevent real statements reaching GitHub: .gitignore has /private/, /statements/ (root folders only, so
+   engine/statements/ code is still tracked), *.ofx, *.qif, *.pdf, *.csv
+   except data/samples/, data/processed/ and data/raw/ (public RBA/ABS data). tests/test_privacy.py fails if any
+   .pdf/.csv exists outside those folders.
+8. Never use real people's data in samples or tests — synthetic only.
+
+How it's implemented: statement data lives only in `st.session_state["statement_*"]`; `engine/statements/`
+works on bytes/DataFrames and tests/test_privacy.py checks it has no network, file-writing, logging or caching
+code and that parsing writes no files. Sample merchants are real businesses; people, employers and the bank
+("Sample Bank") are fictional.
 
 ## Rules
 

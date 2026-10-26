@@ -14,6 +14,7 @@ load_css()
 page = st.navigation(
     [
         st.Page("app_pages/home.py", title="Home", icon=":material/home:", default=True),
+        st.Page("app_pages/statement_analyser.py", title="Statement Analyser", icon=":material/receipt_long:"),
         st.Page("app_pages/calculator.py", title="Calculator", icon=":material/calculate:"),
         st.Page("app_pages/stress_scenarios.py", title="Stress Scenarios", icon=":material/thunderstorm:"),
         st.Page("app_pages/risk_simulator.py", title="Risk Simulator", icon=":material/casino:"),

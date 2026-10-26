@@ -22,7 +22,8 @@ MortageChecker/
 ├── ui/                    Shared display helpers (no calculations)
 │   ├── components.py      money(), md_safe(), cards, hero, footer, disclaimer dialog
 │   ├── calculator_state.py Calculator inputs in session state + household_from_inputs() (shared by pages)
-│   ├── privacy.py         uploads_allowed() (MRC_ALLOW_UPLOADS), clear_statement_data()
+│   ├── privacy.py         uploads_allowed() (MRC_ALLOW_UPLOADS), privacy notice, clear_statement_data()
+│   ├── session_guard.py   10-minute inactivity timeout: statement namespace, touch/expire/wipe, status fragment
 │   ├── charts.py          Plotly template "mrc" matching the theme
 │   └── disclaimer.py      Disclaimer and assumptions wording (single source)
 ├── engine/                All calculations. Pure Python, NO Streamlit imports
@@ -55,6 +56,8 @@ MortageChecker/
   - Run the tests: `.venv/bin/python -m pytest`
   - Refresh historical data (manual, needs internet): `.venv/bin/python scripts/update_data.py`
   - Local use with statement uploads: `MRC_ALLOW_UPLOADS=1 .venv/bin/streamlit run app.py`
+  - Test the timeout quickly: `MRC_ALLOW_UPLOADS=1 MRC_TIMEOUT_SECONDS=90 .venv/bin/streamlit run app.py`
+    (testing only; the default is 600 seconds)
   - Regenerate samples + accuracy report: `.venv/bin/python scripts/make_samples.py --report`
 - **The app never downloads data at runtime.** It reads data/processed/ only.
 
@@ -75,7 +78,8 @@ MortageChecker/
    - **1.5 Done:** multi-page layout, market snapshot, learning hub and disclaimers.
 2. **Done:** upfront costs (NSW duty, LMI, 5% Deposit Scheme, fees), savings buffer, life events and
    combined stress scenarios.
-   - **2.5 Done:** Statement Analyser (synthetic demo data, local-only processing, rules-based categories).
+   - **2.5 Done:** Statement Analyser (synthetic demo data, local-only processing, rules-based categories),
+     plus a 10-minute inactivity timeout with automatic data wipe.
 3. **Done:** Monte Carlo simulation of rates, inflation and wage growth using historical RBA/ABS data
    (Risk Simulator page). History windows: since Oct 1997 (WPI start) or since 2010.
 4. Insights: probability of stress, savings runway, break points, risk-driver chart, "what to change" suggestions.
@@ -118,10 +122,24 @@ dimensions, e.g. `(n_sims, months)`; it loops only over months, never simulation
    .pdf/.csv exists outside those folders.
 8. Never use real people's data in samples or tests — synthetic only.
 
-How it's implemented: statement data lives only in `st.session_state["statement_*"]`; `engine/statements/`
-works on bytes/DataFrames and tests/test_privacy.py checks it has no network, file-writing, logging or caching
-code and that parsing writes no files. Sample merchants are real businesses; people, employers and the bank
-("Sample Bank") are fictional.
+How it's implemented:
+- **One namespace.** All statement data lives in `st.session_state["statement"]` (a dict): transactions,
+  reviewed categories, warnings, AND figures copied to the Calculator (`prefill`). Pages read
+  `effective_inputs()` (manual inputs overlaid with `prefill`), so when the namespace goes, they fall back to
+  the manual form. Widgets showing statement data use keys starting `stmtw_` (widgets can't live in a dict).
+- **10-minute inactivity timeout** (`ui/session_guard.py`, `TIMEOUT_SECONDS = 600`, `TIMEOUT_MODE`
+  "inactivity" or "absolute"). `guard_rerun()` runs at the start of every normal rerun in app.py: it checks
+  the timer FIRST (so a click after a long absence still expires the data), then calls `touch()`.
+  `status_fragment()` (`st.fragment(run_every="15s")`) re-checks while the tab sits idle and never calls
+  `touch()`. Final minute: "Keep my session" / "Clear now". `wipe()` removes the namespace, `stmtw_*` keys,
+  pre-filled `calc_*` widget keys and `calc_last_suggested`, bumps the uploader key, then `gc.collect()`.
+- **Closed tabs:** `server.disconnectedSessionTTL = 60` in .streamlit/config.toml; Streamlit frees the session
+  lazily, at some point after that, so the notice says "within about a minute of closing the tab".
+- **Honest limit:** deleting releases memory; Python can't guarantee the bytes are overwritten immediately.
+- No `st.cache_*` in any page or helper that touches statement figures (tested). `engine/statements/` works on
+  bytes/DataFrames; tests check it has no network, file-writing, logging or caching code and that parsing
+  writes no files. Sample merchants are real businesses; people, employers and the bank ("Sample Bank") are
+  fictional. `sample_jamie_*` is built to an exact spec (88 transactions, $40,000.00 → $49,322.77).
 
 ## Rules
 

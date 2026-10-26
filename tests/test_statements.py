@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from engine.statements.accuracy import SAMPLE_KEYS, persona_accuracy
+from engine.statements.accuracy import JAMIE_FILES, SAMPLE_KEYS, jamie_accuracy, jamie_truth, persona_accuracy
 from engine.statements.analyse import (
     estimate_gross,
     household_income_split,
@@ -26,6 +26,7 @@ from engine.statements.parse import (
     parse_csv,
     parse_file,
     parse_pdf,
+    statement_balances,
 )
 from engine.statements.redact import redact
 from engine.tax import take_home
@@ -260,3 +261,21 @@ def test_sam_and_jordan_have_no_gambling_or_overdrawn_flags():
     frame = categorise(load("sam_jordan"))
     titles = {f.title for f in lender_flags(frame, summarise(frame))}
     assert not titles & {"Gambling transactions", "Account overdrawn", "Dishonour or overdraft fees"}
+
+
+# ---------------- Jamie (spec from docs/prompts/session_timeout.md) ----------------
+@pytest.mark.parametrize("filename", JAMIE_FILES)
+def test_jamie_matches_spec(filename):
+    frame = parse_file(filename, (SAMPLES / filename).read_bytes())
+    assert len(frame) == 88
+    assert str(frame["date"].min().date()) == "2026-07-01"
+    assert str(frame["date"].max().date()) == "2026-09-30"
+    assert statement_balances(frame) == (40_000.00, 49_322.77)
+    assert frame["amount"].tolist() == pytest.approx([float(r["amount"]) for r in jamie_truth(SAMPLES)])
+
+
+@pytest.mark.parametrize("filename", JAMIE_FILES)
+def test_jamie_categorisation_accuracy(filename):
+    by_value, by_count = jamie_accuracy(SAMPLES, filename)
+    print(f"jamie {filename}: {by_value:.1%} by value, {by_count:.1%} by count")
+    assert by_value >= MIN_ACCURACY

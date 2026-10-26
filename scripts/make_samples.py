@@ -195,6 +195,67 @@ def make_riley() -> Statement:
     return s
 
 
+JAMIE_TRANSACTIONS = 88
+JAMIE_OPENING = 40_000.00
+JAMIE_CLOSING = 49_322.77
+
+
+def make_jamie() -> Statement:
+    """Single professional paid monthly, with healthy savings. Built to an exact spec:
+    88 transactions, opening $40,000.00, closing $49,322.77 (the last transfer to savings balances it)."""
+    rng = random.Random(4)
+    s = Statement("jamie", "Jamie Example", "21 Specimen Road, Testville NSW 2996", "999-004", "44556677",
+                  JAMIE_OPENING, "jamie")
+    pay = round(take_home(140_000, has_help=False).net / 12, 2)
+    for day in monthly(14):
+        s.add(day, "SALARY HARBOURVIEW ANALYTICS PTY LTD", pay, "Income – salary")
+        s.add(date(2026, day.month, 1), f"RENT HARBOURSIDE REALTY REF {rng.randint(100000, 999999)}", -2_650.00, "Rent/mortgage")
+        s.add(day - timedelta(days=9), "TELSTRA MOBILE DIRECT DEBIT", -55.00, "Phone/internet")
+        s.add(day - timedelta(days=7), "SUPERLOOP NBN INTERNET", -85.00, "Phone/internet")
+        s.add(day + timedelta(days=2), f"NETFLIX.COM {card(rng)}", -18.99, "Subscriptions")
+        s.add(day + timedelta(days=5), f"SPOTIFY AU {card(rng)}", -13.99, "Subscriptions")
+        s.add(day - timedelta(days=4), "YOUI CAR INSURANCE", -96.30, "Insurance")
+        s.add(day - timedelta(days=2), "BUPA HEALTH INSURANCE", -164.85, "Insurance")
+        s.add(day + timedelta(days=8), "ANYTIME FITNESS MEMBERSHIP", -64.95, "Health")
+    s.add(date(2026, 8, 20), "RED ENERGY ELECTRICITY", -388.60, "Utilities")     # quarterly bill
+    for day in every(date(2026, 7, 4), 7):
+        s.add(day, f"{rng.choice(['WOOLWORTHS', 'HARRIS FARM', 'ALDI STORES'])} {rng.randint(1000, 9999)} {card(rng)}",
+              -rng.uniform(55, 130), "Groceries")
+    for day in every(date(2026, 7, 6), 11):
+        s.add(day, f"{rng.choice(['AMPOL', 'BP', 'CALTEX'])} {rng.choice(['RYDE', 'EPPING'])} {card(rng)}",
+              -rng.uniform(50, 85), "Transport/fuel")
+    for day in every(date(2026, 7, 3), 6):
+        s.add(day, f"{rng.choice(['UBER *EATS', 'GUZMAN Y GOMEZ', 'STARBUCKS', 'NANDOS'])} {card(rng)}",
+              -rng.uniform(12, 45), "Dining/takeaway")
+    for day in every(date(2026, 7, 9), 16):
+        s.add(day, f"{rng.choice(['BUNNINGS', 'UNIQLO', 'JB HI-FI', 'OFFICEWORKS'])} {card(rng)}",
+              -rng.uniform(30, 140), "Shopping")
+    for day in every(date(2026, 7, 2), 9):
+        s.add(day, f"TRANSPORTFORNSW OPAL {receipt(rng)}", -rng.uniform(20, 40), "Transport/fuel")
+    for day in monthly(22):
+        s.add(day, f"TERRYWHITE CHEMMART {card(rng)}", -rng.uniform(15, 45), "Health")
+    for day in monthly(16):
+        s.add(day, f"TRANSFER TO SAVINGS ACCT {rng.randint(10000000, 99999999)}", -1_000.00, "Transfers (own accounts)")
+
+    # Exactly 88: trim or pad everyday dining, then one final transfer to savings that lands the closing balance
+    s.rows.sort(key=lambda r: r["date"])
+    while len(s.rows) > JAMIE_TRANSACTIONS - 1:
+        s.rows.remove(next(r for r in reversed(s.rows) if r["category"] == "Dining/takeaway"))
+    extra_day = date(2026, 7, 5)
+    while len(s.rows) < JAMIE_TRANSACTIONS - 1:
+        s.add(extra_day, f"STARBUCKS {card(rng)}", -round(rng.uniform(5, 9), 2), "Dining/takeaway")
+        extra_day += timedelta(days=13)
+    balancing = round(JAMIE_CLOSING - JAMIE_OPENING - sum(r["amount"] for r in s.rows), 2)
+    if balancing >= 0:
+        raise ValueError("Jamie's spending is too high for the target closing balance")
+    s.add(END, f"TRANSFER TO SAVINGS ACCT {rng.randint(10000000, 99999999)}", balancing, "Transfers (own accounts)")
+    s.finish()
+    assert len(s.rows) == JAMIE_TRANSACTIONS and s.rows[-1]["balance"] == JAMIE_CLOSING
+    s.truth = {"earners": [{"payer": "HARBOURVIEW ANALYTICS", "gross": 140_000, "has_help": False,
+                            "frequency": "monthly", "net_pay": pay}]}
+    return s
+
+
 # ---------------------------------------------------------------------------
 # Writing files
 # ---------------------------------------------------------------------------
@@ -219,6 +280,12 @@ def write_csv(s: Statement) -> bytes:
             debit = f"{-r['amount']:.2f}" if r["amount"] < 0 else ""
             credit = f"{r['amount']:.2f}" if r["amount"] > 0 else ""
             w.writerow([r["date"].isoformat(), r["description"], debit, credit, f"{r['balance']:.2f}"])
+    elif s.csv_layout == "jamie":           # dd/mm/yyyy, separate debit/credit columns
+        w.writerow(["Date", "Transaction Details", "Debit", "Credit", "Balance"])
+        for r in s.rows:
+            debit = f"{-r['amount']:.2f}" if r["amount"] < 0 else ""
+            credit = f"{r['amount']:.2f}" if r["amount"] > 0 else ""
+            w.writerow([r["date"].strftime("%d/%m/%Y"), r["description"], debit, credit, f"{r['balance']:.2f}"])
     else:                                   # "01 Jul 2026", $-formatted signed amounts
         w.writerow(["Posted", "Details", "Amount", "Running Balance"])
         for r in s.rows:
@@ -269,9 +336,22 @@ def write_pdf(s: Statement) -> bytes:
             pdf.drawRightString(490, y, money(r["amount"]))
         pdf.drawRightString(560, y, money(r["balance"]))
         y -= 12
+    pdf.setFont("Helvetica-Bold", 8)
+    pdf.drawString(100, y - 4, "CLOSING BALANCE")
+    pdf.drawRightString(560, y - 4, money(s.rows[-1]["balance"]))
     pdf.showPage()
     pdf.save()
     return buffer.getvalue()
+
+
+def write_truth_csv(s: Statement) -> bytes:
+    """Ground truth as a CSV: one row per transaction, in statement order."""
+    out = io.StringIO()
+    w = csv.writer(out)
+    w.writerow(["date", "description", "amount", "category"])
+    for r in s.rows:
+        w.writerow([r["date"].isoformat(), r["description"], f"{r['amount']:.2f}", r["category"]])
+    return out.getvalue().encode("utf-8")
 
 
 def write_truth(s: Statement) -> str:
@@ -299,6 +379,11 @@ def main() -> None:
         (SAMPLES / f"{s.key}.pdf").write_bytes(write_pdf(s))
         (SAMPLES / f"{s.key}_truth.json").write_text(write_truth(s), encoding="utf-8")
         print(f"{s.key}: {len(s.rows)} transactions")
+    jamie = make_jamie()   # named to match docs/prompts/session_timeout.md
+    (SAMPLES / "sample_jamie_statement.csv").write_bytes(write_csv(jamie))
+    (SAMPLES / "sample_jamie_statement.pdf").write_bytes(write_pdf(jamie))
+    (SAMPLES / "sample_jamie_ground_truth.csv").write_bytes(write_truth_csv(jamie))
+    print(f"jamie: {len(jamie.rows)} transactions, closing {jamie.rows[-1]['balance']:,.2f}")
     if "--report" in sys.argv:
         from engine.statements.accuracy import accuracy_report
         for line in accuracy_report(SAMPLES):

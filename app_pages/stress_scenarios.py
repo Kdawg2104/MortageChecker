@@ -22,7 +22,7 @@ from engine.scenarios import (
     RateChange,
     run_scenario,
 )
-from ui.calculator_state import calculator_visited, household_from_inputs, saved_inputs
+from ui.calculator_state import calculator_visited, effective_inputs, household_from_inputs
 from ui.components import md_safe, money, statement_badge, what_this_means
 
 CUSTOM = "custom"
@@ -34,7 +34,7 @@ EVENT_TYPES = (
 )
 
 visited = calculator_visited()
-inputs = saved_inputs()
+inputs = effective_inputs()
 household, summary = household_from_inputs(inputs)
 
 # Each scenario's editable event list, starting from the presets

@@ -129,7 +129,8 @@ def disclaimer_box() -> None:
 
 def statement_badge() -> None:
     """Shown on pages that use figures copied from the Statement Analyser."""
-    if st.session_state.get("statement_applied"):
+    ns = st.session_state.get("statement")
+    if ns and ns.get("prefill"):
         with st.container(border=True):
             st.markdown(":material/receipt_long: **Using figures from your statements.** Income, living costs "
                         "and debts come from the Statement Analyser; you can still edit them here.")

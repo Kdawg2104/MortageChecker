@@ -264,6 +264,14 @@ def combine(frames: list[pd.DataFrame]) -> pd.DataFrame:
     return joined.drop(columns="_occurrence").sort_values("date", kind="stable").reset_index(drop=True)
 
 
+def statement_balances(frame: pd.DataFrame) -> tuple[float, float] | None:
+    """(opening, closing) balance from the running balance, or None if the file had no balances."""
+    if frame.empty or frame["balance"].isna().any():
+        return None
+    opening = frame["balance"].iloc[0] - frame["amount"].iloc[0]
+    return round(float(opening), 2), round(float(frame["balance"].iloc[-1]), 2)
+
+
 def coverage_days(frame: pd.DataFrame) -> int:
     if frame.empty:
         return 0

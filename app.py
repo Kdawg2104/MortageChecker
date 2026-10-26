@@ -1,12 +1,13 @@
 """Mortgage Reality Check: entry point.
 
-Sets up the page, shared styling, the first-visit disclaimer and navigation.
+Sets up the page, shared styling, the statement-data timeout, the first-visit disclaimer and navigation.
 Each page lives in pages/; all calculations live in engine/.
 """
 
 import streamlit as st
 
 from ui.components import disclaimer_dialog, footer, load_css
+from ui.session_guard import guard_rerun, status_fragment
 
 st.set_page_config(page_title="Mortgage Reality Check", page_icon="🏠", layout="wide")
 load_css()
@@ -24,6 +25,11 @@ page = st.navigation(
     ],
     position="top",
 )
+
+# Statement data timeout: check the timer, then count this rerun as activity. The status
+# fragment re-checks every 15 seconds on its own (without counting as activity).
+guard_rerun()
+status_fragment()
 
 if not st.session_state.get("disclaimer_accepted"):
     disclaimer_dialog()

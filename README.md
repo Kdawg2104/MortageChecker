@@ -30,8 +30,12 @@ Gross income is estimated by inverting the tax engine from observed take-home pa
 
 Statement data is sensitive, so the analyser is built to keep it on your computer:
 
-- **In memory only.** Files are read from memory, never saved to disk, logs, caches or databases, and are
-  cleared when you close the tab or click **Clear my data**.
+- **In memory only.** Files are read from memory, never saved to disk, logs, caches or databases.
+- **Automatic deletion.** All statement data, including any figures copied into the Calculator, is deleted
+  after **10 minutes of inactivity**, when you click **Clear my data**, or within about a minute of closing
+  the tab. A check runs every 15 seconds, so it works even if you walk away; a status chip shows the time
+  left, and in the final minute you can choose "Keep my session". Deleting releases the memory; like any
+  Python program, the app can't guarantee the old bytes are overwritten immediately.
 - **No network calls.** Parsing and categorisation run entirely locally: no external APIs or AI services.
 - **Uploads are off by default.** The online demo only offers synthetic samples. Uploading your own
   statements needs the app running locally with `MRC_ALLOW_UPLOADS=1`.
@@ -42,7 +46,8 @@ Statement data is sensitive, so the analyser is built to keep it on your compute
   synthetic sample and public-data folders, and a test fails if any appear.
 - **Synthetic samples only.** The sample statements come from the fictional "Sample Bank" with invented people.
 
-These rules are enforced by tests in `tests/test_privacy.py` and `tests/test_statement_page.py`.
+These rules are enforced by tests in `tests/test_privacy.py`, `tests/test_session_guard.py` (with a fake
+clock) and `tests/test_statement_page.py`.
 
 ## Running it
 
@@ -60,6 +65,12 @@ Local mode with your own statements:
 
 ```bash
 MRC_ALLOW_UPLOADS=1 streamlit run app.py
+```
+
+To try the timeout without waiting 10 minutes (testing only):
+
+```bash
+MRC_ALLOW_UPLOADS=1 MRC_TIMEOUT_SECONDS=90 streamlit run app.py
 ```
 
 Tests:

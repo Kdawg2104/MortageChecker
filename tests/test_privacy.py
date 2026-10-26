@@ -75,3 +75,14 @@ def test_statement_engine_has_no_network_or_cache_code():
         for word in forbidden:
             assert word not in source, f"{path.name} contains {word!r}"
         assert not builtin_open.search(source), f"{path.name} calls open()"
+
+
+STATEMENT_PAGES = ("app_pages/statement_analyser.py", "app_pages/calculator.py", "app_pages/stress_scenarios.py",
+                   "app_pages/risk_simulator.py", "ui/calculator_state.py", "ui/session_guard.py", "ui/privacy.py")
+
+
+def test_no_caching_where_statement_figures_are_used():
+    """Rule 1: statement data (incl. figures copied to other pages) must never be cached."""
+    for name in STATEMENT_PAGES:
+        source = (ROOT / name).read_text()
+        assert "st.cache" not in source, f"{name} uses a Streamlit cache"

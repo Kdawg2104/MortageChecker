@@ -8,3 +8,8 @@ font = "sans-serif"
 
 [browser]
 gatherUsageStats = false
+
+[server]
+# Free a closed tab's session (incl. any statement data) about a minute after it disconnects.
+# Streamlit's default is 120 seconds; cleanup happens lazily at some point after this time.
+disconnectedSessionTTL = 60

@@ -1,6 +1,7 @@
 """Statement Analyser page: read 3 months of transactions, review them, and use the figures in the Calculator.
 
-Privacy (see CLAUDE.md): statement data lives only in st.session_state["statement_*"], in memory.
+Privacy (see CLAUDE.md): statement data lives only in the st.session_state["statement"] namespace
+and "stmtw_" widgets, in memory, and is wiped by ui/session_guard.py after inactivity or on request.
 Nothing here caches, saves or sends it anywhere. All maths comes from engine/statements/.
 """
 
@@ -29,50 +30,53 @@ from engine.statements.parse import (
     coverage_warning,
     parse_csv,
     parse_file,
+    statement_balances,
 )
-from ui.calculator_state import saved_inputs
+from ui import session_guard as guard
+from ui.calculator_state import effective_inputs
 from ui.charts import TEMPLATE, TEAL, CORAL
 from ui.components import md_safe, money, what_this_means
-from ui.privacy import (
-    UPLOAD_DISABLED_NOTE,
-    UPLOAD_NOTICE,
-    UPLOADER_VERSION,
-    clear_statement_data,
-    uploads_allowed,
-)
+from ui.privacy import UPLOAD_DISABLED_NOTE, UPLOAD_NOTICE, clear_statement_data, uploads_allowed
+from ui.session_guard import UPLOADER_VERSION, WIDGET_PREFIX
 
 SAMPLES = Path(__file__).resolve().parent.parent / "data" / "samples"
+# key: (name, description, icon, sample PDF file)
 PERSONAS = {
     "alex": ("Alex", "Single renter on about \\$85k, paid fortnightly. HECS/HELP, buy now pay later, subscriptions.",
-             ":material/person:"),
+             ":material/person:", "alex.pdf"),
     "sam_jordan": ("Sam & Jordan", "Couple on about \\$110k and \\$75k. Childcare, a car loan, credit card and insurance.",
-                   ":material/group:"),
+                   ":material/group:", "sam_jordan.pdf"),
     "riley": ("Riley", "Casual and gig work with irregular pay. Higher spending, a dishonour fee and some betting.",
-              ":material/directions_car:"),
+              ":material/directions_car:", "riley.pdf"),
+    "jamie": ("Jamie", "Single professional on about \\$140k, paid monthly, saving regularly. A steady budget.",
+              ":material/savings:", "sample_jamie_statement.pdf"),
 }
 CATEGORIES = [rule.name for rule in load_rules()]
 GROUPS = category_groups()
 NOT_SPENDING = {"income", "transfer"}
 
 
+def fresh_namespace() -> dict:
+    """Start a new statement session, wiping any previous statement data first."""
+    if guard.has_data():
+        guard.wipe(reason="replaced")
+    return guard.start()
+
+
 def store(frame: pd.DataFrame, source: str, warnings: list[str]) -> None:
-    """Keep the categorised transactions in session state (memory only) for this tab."""
-    st.session_state["statement_frame"] = categorise(frame)
-    st.session_state["statement_source"] = source
-    st.session_state["statement_warnings"] = warnings
-    st.session_state["statement_applied"] = False
-    st.session_state["statement_editor_version"] = st.session_state.get("statement_editor_version", 0) + 1
-    st.session_state.pop("statement_pending_mapping", None)
+    """Keep the categorised transactions in the statement namespace (memory only) for this tab."""
+    ns = fresh_namespace()
+    ns.update(frame=categorise(frame), source=source, warnings=warnings, editor_version=0)
 
 
 def load_sample(key: str) -> None:
-    data = (SAMPLES / f"{key}.pdf").read_bytes()
-    store(parse_file(f"{key}.pdf", data), f"sample:{key}", [])
+    filename = PERSONAS[key][3]
+    store(parse_file(filename, (SAMPLES / filename).read_bytes()), f"sample:{key}", [])
 
 
 def analyse_uploads(files) -> None:
     """Parse uploaded files from memory. Unreadable files produce friendly messages, not errors."""
-    frames, warnings = [], []
+    frames, warnings, pending = [], [], None
     for file in files:
         data = file.getvalue()   # in-memory bytes; never written to disk
         try:
@@ -81,17 +85,21 @@ def analyse_uploads(files) -> None:
             warnings.append(f"**{file.name}** looks like a scanned PDF with no readable text. Try downloading a CSV "
                             "export from your online banking instead.")
         except NeedsColumnMapping as needs:
-            st.session_state["statement_pending_mapping"] = (file.name, data, needs.columns, needs.preview)
+            pending = (file.name, data, needs.columns, needs.preview)
     if frames:
         store(combine(frames), "upload", warnings)
     else:
-        st.session_state["statement_warnings"] = warnings
+        ns = fresh_namespace()
+        ns["warnings"] = warnings
+    if pending:
+        guard.namespace()["pending_mapping"] = pending
 
 
 def apply_editor_changes(view_index: list) -> None:
     """Copy edits from the review table back into the stored transactions."""
-    frame = st.session_state["statement_frame"]
-    key = f"statement_editor_{st.session_state['statement_editor_version']}"
+    ns = guard.namespace()
+    frame = ns["frame"]
+    key = f"{WIDGET_PREFIX}editor_{ns['editor_version']}"
     for position, changes in st.session_state[key]["edited_rows"].items():
         row = view_index[int(position)]
         if "Category" in changes:
@@ -99,7 +107,8 @@ def apply_editor_changes(view_index: list) -> None:
             frame.loc[row, "confidence"] = "high"   # the user decided, so it no longer needs checking
         if "Include" in changes:
             frame.loc[row, "include"] = bool(changes["Include"])
-    st.session_state["statement_editor_version"] += 1
+    del st.session_state[key]   # the old editor's copy of the edits isn't needed any more
+    ns["editor_version"] += 1
 
 
 st.title("Statement Analyser")
@@ -110,13 +119,15 @@ st.write(
 
 # ---------------- Step 1: choose ----------------
 st.subheader("1. Choose your statements")
-cols = st.columns(len(PERSONAS))
-for column, (key, (name, description, icon)) in zip(cols, PERSONAS.items()):
+cols = st.columns(2)
+for i, (key, (name, description, icon, _)) in enumerate(PERSONAS.items()):
+    column = cols[i % 2]
     with column.container(border=True):
         st.markdown(f"{icon} **{name}**")
         st.caption(description)
         if st.button("Try this sample", key=f"sample_{key}", width="stretch"):
             load_sample(key)
+            st.rerun()   # redraw from the top so the status chip appears straight away
 st.caption("Samples are synthetic statements from the fictional \"Sample Bank\": invented people, made-up transactions.")
 
 if uploads_allowed():
@@ -125,20 +136,23 @@ if uploads_allowed():
         st.info(UPLOAD_NOTICE, icon=":material/lock:")
         files = st.file_uploader(
             "Statement files", type=["csv", "pdf"], accept_multiple_files=True,
-            key=f"upload_{st.session_state.get(UPLOADER_VERSION, 0)}", label_visibility="collapsed",
+            key=f"{WIDGET_PREFIX}upload_{st.session_state.get(UPLOADER_VERSION, 0)}", label_visibility="collapsed",
         )
         if files and st.button("Analyse these files", type="primary", icon=":material/search:"):
             analyse_uploads(files)
+            st.rerun()
 else:
     st.info(UPLOAD_DISABLED_NOTE, icon=":material/lock:")
 
 st.page_link("app_pages/calculator.py", label="Prefer to type it in? Use the calculator", icon=":material/calculate:")
 
+ns = guard.namespace() or {}
+
 # Column mapping for a CSV whose layout wasn't recognised
-pending = st.session_state.get("statement_pending_mapping")
+pending = ns.get("pending_mapping")
 if pending:
     name, data, columns, preview = pending
-    with st.form("statement_mapping"):
+    with st.form(f"{WIDGET_PREFIX}mapping"):
         st.markdown(f"**We couldn't recognise the columns in {name}.** Tell us which is which:")
         st.dataframe(pd.DataFrame(preview, columns=columns[:len(preview[0])] if preview else columns), hide_index=True)
         c1, c2 = st.columns(2)
@@ -151,15 +165,15 @@ if pending:
             mapping = ColumnMapping(date_col, desc_col, amount=amount_col,
                                     balance=None if balance_col == "(none)" else balance_col)
             try:
-                store(parse_csv(data, mapping), "upload", st.session_state.get("statement_warnings", []))
+                store(parse_csv(data, mapping), "upload", ns.get("warnings", []))
                 st.rerun()
             except NeedsColumnMapping:
                 st.error("That still didn't work: check the date column contains dates.")
 
-for warning in st.session_state.get("statement_warnings", []):
+for warning in ns.get("warnings", []):
     st.warning(warning, icon=":material/warning:")
 
-frame = st.session_state.get("statement_frame")
+frame = ns.get("frame")
 if frame is None:
     with st.expander("How we read your statements", icon=":material/help:"):
         st.markdown(
@@ -171,13 +185,15 @@ if frame is None:
 
 # ---------------- Step 2: summary ----------------
 summary = summarise(frame)
-source = st.session_state.get("statement_source", "")
+source = ns.get("source", "")
 st.subheader("2. What we found")
 label = f"sample statements for {PERSONAS[source.split(':')[1]][0]}" if source.startswith("sample:") else "your statements"
 st.caption(
     f"From {label}: {summary.start:%d %b %Y} to {summary.end:%d %b %Y} ({summary.days} days), "
     f"{summary.transactions} transactions."
 )
+if balances := statement_balances(frame):
+    st.caption(md_safe(f"Opening balance {money(balances[0])} · closing balance {money(balances[1])}."))
 if warning := coverage_warning(frame):
     st.warning(warning, icon=":material/schedule:")
 
@@ -205,7 +221,7 @@ st.write("Check anything marked ⚠. Change a category, or untick **Include** to
 to_check = int((frame["confidence"] == LOW).sum())
 show = st.selectbox(
     "Show", ["All transactions", f"Only items to check ({to_check})", *sorted(frame["category"].unique())],
-    key="statement_filter",
+    key=f"{WIDGET_PREFIX}filter",
 )
 if show.startswith("Only items"):
     view = frame[frame["confidence"] == LOW]
@@ -224,7 +240,7 @@ table = pd.DataFrame({
 })
 st.data_editor(
     table,
-    key=f"statement_editor_{st.session_state['statement_editor_version']}",
+    key=f"{WIDGET_PREFIX}editor_{ns['editor_version']}",
     hide_index=True,
     width="stretch",
     height=380,
@@ -290,22 +306,22 @@ for i, monthly_net in enumerate(split[:2]):
     with st.container(border=True):
         c1, c2, c3 = st.columns([2, 1, 2], vertical_alignment="bottom")
         c1.metric(f"Earner {i + 1}: {who} (take-home)", money(monthly_net) + "/mo")
-        has_help = c2.checkbox("Has HECS/HELP", key=f"statement_help_{i}",
+        has_help = c2.checkbox("Has HECS/HELP", key=f"{WIDGET_PREFIX}help_{i}",
                                help="HELP repayments come out of pay before it reaches your account, so we can't see them.")
         gross = c3.number_input("Estimated gross income ($/year)", min_value=0, step=1_000,
                                 value=int(round(estimate_gross(monthly_net, has_help))),
-                                key=f"statement_gross_{i}_{has_help}")
+                                key=f"{WIDGET_PREFIX}gross_{i}_{has_help}")
         grosses.append(gross)
         helps.append(has_help)
 
 if st.button("Use these numbers", type="primary", icon=":material/check:"):
-    inputs = saved_inputs()
-    inputs.update(to_calculator_inputs(summary, grosses, helps))
+    # The figures stay inside the statement namespace, so they're wiped with it
+    ns["prefill"] = to_calculator_inputs(summary, grosses, helps)
+    inputs = effective_inputs()
     # Tell the Calculator these are deliberate figures, so its lifestyle preset doesn't overwrite them
     st.session_state["calc_last_suggested"] = living_costs(inputs["preset"], inputs["borrowers"], inputs["dependants"])
-    st.session_state["statement_applied"] = True
 
-if st.session_state.get("statement_applied"):
+if ns.get("prefill"):
     st.success(
         md_safe(f"Done. The Calculator now uses {len(grosses)} earner(s), living costs of "
                 f"{money(summary.essentials + summary.discretionary)}/month (rent excluded) and debts of "
@@ -322,13 +338,14 @@ what_this_means(
     "holidays) are included, since 3 months of statements can miss them."
 )
 
-if st.button("Clear my data", icon=":material/delete:", help="Removes every statement figure from this session"):
+if st.button("Clear my data", key=f"{WIDGET_PREFIX}clear_page", icon=":material/delete:",
+             help="Removes every statement figure from this session straight away"):
     clear_statement_data()
     st.rerun()
 
 with st.expander("How we read your statements", icon=":material/help:"):
     st.markdown(
-        """
+        f"""
 1. **Read**: only the transaction rows are read. Headers with names, addresses and account details are skipped.
 2. **Remove private details**: account numbers, BSBs, card numbers, personal names and reference numbers are
    removed from descriptions as soon as a file is read.
@@ -346,6 +363,10 @@ with st.expander("How we read your statements", icon=":material/help:"):
 - This is not a credit assessment.
 
 **Privacy**: processed in memory on the computer running the app. Nothing is saved, logged or sent anywhere.
+Everything is deleted after {guard.timeout_text()} of inactivity (a check runs every 15 seconds, even if you've walked away),
+when you click **Clear my data**, or within about a minute of closing the tab. Deleting releases the memory;
+like any program, Python can't promise the old bytes are overwritten straight away.
 """
     )
-st.caption("Statement data is held only in this browser session and is cleared when you close the tab.")
+st.caption(f"Statement data is held only in this browser session and is deleted after {guard.timeout_text()} of "
+           "inactivity or when you close the tab.")

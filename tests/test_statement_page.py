@@ -42,34 +42,37 @@ def test_sample_to_calculator_and_clear(monkeypatch):
     at = open_page()
     at.button(key="sample_sam_jordan").click().run()
     assert not at.exception
-    assert "statement_frame" in at.session_state
+    assert "frame" in at.session_state["statement"]
 
     at.button[[b.label for b in at.button].index("Use these numbers")].click().run()
-    inputs = at.session_state["calculator_inputs"]
-    assert inputs["borrowers"] == 2
-    assert inputs["income_0"] == pytest.approx(110_000, abs=100)
-    assert inputs["income_1"] == pytest.approx(75_000, abs=100)
-    assert at.session_state["statement_applied"]
+    prefill = at.session_state["statement"]["prefill"]   # statement figures stay in the statement namespace
+    assert prefill["borrowers"] == 2
+    assert prefill["income_0"] == pytest.approx(110_000, abs=100)
+    assert prefill["income_1"] == pytest.approx(75_000, abs=100)
+    assert at.session_state["calculator_inputs"]["borrowers"] == 1   # manual inputs untouched
 
     at.switch_page("app_pages/calculator.py").run()
     assert not at.exception
     assert any("Using figures from your statements" in m.value for m in at.markdown)
-    assert at.session_state["calc_expenses"] == inputs["expenses"]   # not overwritten by the lifestyle preset
+    assert at.session_state["calc_expenses"] == prefill["expenses"]   # not overwritten by the lifestyle preset
+    assert at.session_state["calc_income_1"] == prefill["income_1"]
 
     at.switch_page(PAGE).run()
-    at.button[[b.label for b in at.button].index("Clear my data")].click().run()
-    for key in ("statement_frame", "statement_source", "statement_applied", "statement_warnings"):
-        assert key not in at.session_state
-    assert "calculator_inputs" not in at.session_state or at.session_state["calculator_inputs"].get("borrowers") != 2
+    at.button(key="stmtw_clear_page").click().run()
+    assert "statement" not in at.session_state
+
+    at.switch_page("app_pages/calculator.py").run()
+    assert at.session_state["calc_borrowers"] == 1
+    assert not any("Using figures from your statements" in m.value for m in at.markdown)
 
 
 def test_editing_a_category_updates_totals(monkeypatch):
     monkeypatch.delenv(UPLOAD_SETTING, raising=False)
     at = open_page()
     at.button(key="sample_alex").click().run()
-    frame = at.session_state["statement_frame"]
+    frame = at.session_state["statement"]["frame"]
     netflix = frame.index[frame["description"].str.contains("NETFLIX")][0]
     frame.loc[netflix, "include"] = False          # same effect as unticking Include in the table
     at.run()
     assert not at.exception
-    assert not at.session_state["statement_frame"].loc[netflix, "include"]
+    assert not at.session_state["statement"]["frame"].loc[netflix, "include"]

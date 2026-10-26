@@ -25,23 +25,23 @@ from engine.loan import (
 )
 from engine.projection import savings_runway
 from engine.tax import TAX_YEAR, take_home
-from ui.calculator_state import OTHER_COST_KEYS, saved_inputs, summary_from_inputs
+from ui.calculator_state import OTHER_COST_KEYS, effective_inputs, set_input, summary_from_inputs
 from ui.components import get_snapshot, md_safe, money, statement_badge, what_this_means
 
 MONTHS = 12
 
 default_rate = get_snapshot().get("avg_variable_rate_new")
 
-# Streamlit discards widget values when you leave a page. So every input is saved
-# into a plain dict ("calculator_inputs") the moment it changes, and all widgets
-# are restored from that dict at the start of each run.
-saved = saved_inputs()
-for name, value in saved.items():
+# Streamlit discards widget values when you leave a page. So every input is saved the
+# moment it changes (manual inputs, or statement figures while they exist), and all
+# widgets are restored from the saved values at the start of each run.
+inputs = effective_inputs()
+for name, value in inputs.items():
     st.session_state[f"calc_{name}"] = value
 
 
 def _save_input(name: str) -> None:
-    st.session_state["calculator_inputs"][name] = st.session_state[f"calc_{name}"]
+    set_input(name, st.session_state[f"calc_{name}"])
 
 
 def remember(name: str) -> dict:
@@ -70,9 +70,10 @@ with st.expander("2. Your spending", icon=":material/shopping_cart:"):
     preset = st.selectbox("Lifestyle", list(LIFESTYLE_PRESETS), **remember("preset"))
     suggested = living_costs(preset, borrowers, dependants)
     # Refill expenses when the preset, borrowers or dependants change; keep manual edits otherwise.
-    if st.session_state.get("calc_last_suggested") != suggested or "expenses" not in saved:
+    if st.session_state.get("calc_last_suggested") != suggested or "expenses" not in inputs:
         st.session_state["calc_last_suggested"] = suggested
-        saved["expenses"] = st.session_state["calc_expenses"] = int(round(suggested))
+        inputs["expenses"] = st.session_state["calc_expenses"] = int(round(suggested))
+        set_input("expenses", inputs["expenses"])
     expenses = st.number_input(
         "Monthly living expenses, excluding housing ($)", min_value=0, step=100, **remember("expenses"),
         help="Pre-filled from the lifestyle preset (placeholder figures). Edit it to match your own spending.",
@@ -133,7 +134,7 @@ with st.expander("4. Upfront costs & savings", icon=":material/savings:"):
         help="Australian Government scheme: buy with a 5% deposit (2% for single parents) and no LMI, "
         "if the price is under the cap for your area.",
     )
-    if saved["use_scheme"] and nsw:
+    if inputs["use_scheme"] and nsw:
         col_loc, col_parent = st.columns(2, vertical_alignment="bottom")
         col_loc.selectbox(
             "Where are you buying?", list(SCHEME_PRICE_CAPS),
@@ -154,7 +155,7 @@ tax_results = [take_home(income, has_help) for income, has_help in people]
 gross_monthly = sum(r.gross for r in tax_results) / MONTHS
 net_monthly = sum(r.net for r in tax_results) / MONTHS
 
-summary = summary_from_inputs(saved)
+summary = summary_from_inputs(effective_inputs())
 loan_amount = summary.loan
 lvr = summary.lvr
 repayment = monthly_repayment(loan_amount, rate, years)
@@ -219,7 +220,7 @@ with st.expander("Cash needed to buy", expanded=True, icon=":material/payments:"
     if summary.duty is None:
         rows.append((f"Stamp duty ({state}: not calculated yet)", 0.0))
     else:
-        duty_label = "Stamp duty (first home buyer)" if saved["first_home_buyer"] else "Stamp duty"
+        duty_label = "Stamp duty (first home buyer)" if inputs["first_home_buyer"] else "Stamp duty"
         rows.append((duty_label, summary.duty))
     if summary.lmi and not summary.lmi_capitalised:
         rows.append(("LMI, paid upfront (indicative estimate)", summary.lmi))

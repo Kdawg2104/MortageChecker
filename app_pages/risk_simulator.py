@@ -29,7 +29,7 @@ from engine.simulation import (
     SimulationSettings,
     run_simulation,
 )
-from ui.calculator_state import calculator_visited, household_from_inputs, saved_inputs
+from ui.calculator_state import calculator_visited, effective_inputs, household_from_inputs
 from ui.components import get_snapshot, md_safe, money, statement_badge, what_this_means
 
 METADATA_PATH = Path(__file__).resolve().parent.parent / "data" / "processed" / "metadata.json"
@@ -37,13 +37,16 @@ SIM_CHOICES = (1_000, 5_000, 10_000)
 BAND_COLOUR = "14, 124, 123"   # theme teal as "r, g, b"
 
 
-@st.cache_resource(max_entries=4, show_spinner="Simulating thousands of possible futures…")
 def simulate(household: Household, cash_rate: float, settings: SimulationSettings) -> SimulationResult:
-    """Run (or reuse) a simulation; identical inputs give identical results thanks to the seed."""
-    return run_simulation(household, cash_rate, settings)
+    """Run the simulation (well under a second).
+
+    Deliberately not cached: the household can contain figures from the user's statements,
+    and statement data must never be kept in a cache (CLAUDE.md privacy rules).
+    """
+    with st.spinner("Simulating thousands of possible futures…"):
+        return run_simulation(household, cash_rate, settings)
 
 
-@st.cache_data
 def load_metadata() -> dict:
     return json.loads(METADATA_PATH.read_text())
 
@@ -86,7 +89,7 @@ def fan_chart(bands: dict, title: str, y_title: str, tick_format: str, months: i
 
 
 visited = calculator_visited()
-household, summary = household_from_inputs(saved_inputs())
+household, summary = household_from_inputs(effective_inputs())
 cash_rate = get_snapshot().get("cash_rate")
 metadata = load_metadata()
 

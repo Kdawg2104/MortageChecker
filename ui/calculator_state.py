@@ -1,7 +1,11 @@
 """Calculator inputs shared between pages.
 
-The Calculator page edits these inputs; the Stress Scenarios page reads them. Both turn
-them into engine objects with household_from_inputs(), so the two pages always agree.
+The Calculator page edits these inputs; Stress Scenarios and the Risk Simulator read them.
+All turn them into engine objects with household_from_inputs(), so the pages always agree.
+
+Manual inputs live in st.session_state["calculator_inputs"]. Figures copied from statements
+live in the statement namespace instead (see ui/session_guard.py), and effective_inputs()
+combines the two.
 """
 
 import streamlit as st
@@ -10,6 +14,7 @@ from engine.budget import living_costs
 from engine.costs import DEFAULT_OTHER_COSTS, STATES, PurchaseSummary, purchase_summary
 from engine.scenarios import Household
 from ui.components import get_snapshot
+from ui.session_guard import namespace
 
 # Session-state key for each editable "other cost", e.g. "Moving costs" -> "cost_moving_costs"
 OTHER_COST_KEYS = {
@@ -51,6 +56,24 @@ def saved_inputs() -> dict:
     for key, value in default_inputs().items():
         saved.setdefault(key, value)
     return saved
+
+
+def statement_prefill() -> dict:
+    """Figures copied from the Statement Analyser. They live inside the statement namespace,
+    so they're deleted with it (session_guard.wipe) and pages fall back to the manual inputs."""
+    ns = namespace()
+    return ns.get("prefill", {}) if ns else {}
+
+
+def effective_inputs() -> dict:
+    """What the pages use: the manual inputs, overlaid with statement figures while they exist."""
+    return {**saved_inputs(), **statement_prefill()}
+
+
+def set_input(name: str, value) -> None:
+    """Save an edited input. Editing a statement-derived figure keeps it in the statement namespace."""
+    prefill = statement_prefill()
+    (prefill if name in prefill else saved_inputs())[name] = value
 
 
 def calculator_visited() -> bool:

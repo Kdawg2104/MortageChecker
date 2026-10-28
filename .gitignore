@@ -25,3 +25,7 @@ __pycache__/
 !data/processed/**
 !data/raw/
 !data/raw/**
+
+# Browser build output (made by scripts/build_web.py, deployed by .github/workflows/pages.yml)
+/web/
+/.wheel-cache/

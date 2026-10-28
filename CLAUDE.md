@@ -22,11 +22,12 @@ MortageChecker/
 ├── ui/                    Shared display helpers (no calculations)
 │   ├── components.py      money(), md_safe(), cards, hero, footer, disclaimer dialog
 │   ├── calculator_state.py Calculator inputs in session state + household_from_inputs() (shared by pages)
-│   ├── privacy.py         uploads_allowed() (HEADROOM_ALLOW_UPLOADS), privacy notice, clear_statement_data()
+│   ├── privacy.py         uploads_allowed() (browser, or HEADROOM_ALLOW_UPLOADS), notices, clear_statement_data()
 │   ├── session_guard.py   10-minute inactivity timeout: statement namespace, touch/expire/wipe, status fragment
 │   ├── charts.py          Plotly template "headroom" matching the theme
 │   └── disclaimer.py      Disclaimer and assumptions wording (single source)
 ├── engine/                All calculations. Pure Python, NO Streamlit imports
+│   ├── runtime.py         IS_BROWSER (sys.platform == "emscripten"): server Python vs stlite/Pyodide in the browser
 │   ├── tax.py             AU resident tax 2026-27 (scalar take_home + vectorised take_home_array)
 │   ├── loan.py            P&I repayments, max loan, borrowing power (APRA buffer), rate stress table
 │   ├── budget.py          Lifestyle cost presets (placeholders), stress ratio/labels, 30%-rule check
@@ -35,7 +36,8 @@ MortageChecker/
 │   ├── scenarios.py       Life events + stress presets that build projection input arrays
 │   ├── simulation.py      Monte Carlo: block bootstrap of history, random job loss, runs projection.py
 │   ├── market.py          Loads and validates data/market_snapshot.json
-│   └── statements/        Statement Analyser: redact.py, parse.py (CSV/PDF), categorise.py, analyse.py, accuracy.py
+│   └── statements/        Statement Analyser: redact.py, parse.py (CSV/PDF), pdf_text.py (PDF backends),
+│                          categorise.py, analyse.py, accuracy.py
 ├── data/market_snapshot.json  SINGLE source for all displayed market figures
 ├── data/categories.yaml   Editable keyword rules for statement categorisation
 ├── data/samples/          SYNTHETIC statements ("Sample Bank") + ground truth, from scripts/make_samples.py
@@ -43,9 +45,13 @@ MortageChecker/
 ├── data/processed/        Clean monthly CSVs + metadata.json; history.csv feeds the simulator
 ├── scripts/update_data.py Downloads official RBA (A2, F5, F6) and ABS (CPI, WPI) data and processes it
 ├── scripts/make_samples.py Generates the synthetic sample statements (needs requirements-dev.txt)
+├── scripts/build_web.py   Builds the browser-only version into web/ (stlite pin, file list, pinned wheels)
+├── scripts/web_template/  index.html (CSP + loading screen), headroom.js (mount), loading.css
+├── web/                   BUILD OUTPUT (gitignored). Deployed to GitHub Pages by .github/workflows/pages.yml
+├── assets/favicon.svg     Page icon (house + upward arrow), drawn for this project
 ├── assets/style.css       ALL custom CSS (loaded once by ui.components.load_css)
 ├── assets/hero.jpg        Hero photo (added by the author; gradient fallback if missing)
-├── .streamlit/config.toml Theme
+├── .streamlit/config.toml Theme, telemetry off, closed-session TTL
 ├── tests/                 pytest tests for engine/ (incl. JSON-vs-engine consistency)
 └── pytest.ini             Puts the project root on the path so tests can import engine
 ```
@@ -59,7 +65,27 @@ MortageChecker/
   - Test the timeout quickly: `HEADROOM_ALLOW_UPLOADS=1 HEADROOM_TIMEOUT_SECONDS=90 .venv/bin/streamlit run app.py`
     (testing only; the default is 600 seconds)
   - Regenerate samples + accuracy report: `.venv/bin/python scripts/make_samples.py --report`
+  - Browser build: `.venv/bin/python scripts/build_web.py`, then `.venv/bin/python -m http.server 8000 -d web`
+    and open http://localhost:8000 (`--timeout-seconds 90` for a quick timeout test build; never deploy that)
 - **The app never downloads data at runtime.** It reads data/processed/ only.
+
+## Two runtimes, one codebase
+
+- **Server** (`streamlit run app.py`, locally or Streamlit Community Cloud): normal Python.
+- **Browser** (GitHub Pages, https://kdawg2104.github.io/MortageChecker/): stlite runs the SAME app.py inside
+  the visitor's browser on Pyodide (Python compiled to WebAssembly). Never fork app logic; branch on
+  `engine.runtime.IS_BROWSER` only where behaviour must differ (upload gating, notice wording).
+- Pinned: `@stlite/browser@1.12.0` = Streamlit 1.65.0 + Pyodide 314.0.3 (Python 3.14, pandas 3, numpy 2.4).
+  Code must work on Streamlit 1.65 (local venv is newer): check new Streamlit APIs before using them.
+- Pyodide ships numpy, pandas, pyyaml, pyarrow. plotly, pdfminer.six and two Streamlit dependencies
+  (itsdangerous, python-multipart) are pure-Python wheels that build_web.py downloads once, checks against
+  pinned SHA-256 hashes and serves from web/wheels/, so the site never contacts PyPI.
+- pdfplumber can't run in Pyodide (it imports pypdfium2, a C extension). `engine/statements/pdf_text.py` falls
+  back to pdfminer.six with layout settings that give identical transactions (tests/test_pdf_text.py).
+- New file the app reads? It must match `APP_PATTERNS` in build_web.py (tests/test_web_build.py checks).
+- Measured (Oct 2026): Monte Carlo 5,000 futures takes 0.06 s in Pyodide, same as native, so no browser-only
+  simulation limit. App start-up ~10–20 s with a warm cache; a cold first visit downloads roughly 50 MB (Pyodide + packages ~36 MB, wheels 16 MB), cached after.
+- `st.spinner` doesn't show during blocking calls in stlite, and `time.sleep` is a no-op.
 
 ## Streamlit gotchas (learned the hard way)
 
@@ -107,11 +133,13 @@ dimensions, e.g. `(n_sims, months)`; it loops only over months, never simulation
 1. Statement data is processed IN MEMORY ONLY. Never write uploaded files or parsed transactions to disk,
    logs, caches (no st.cache_data on statement data), databases or temp files.
 2. No network calls during parsing/categorisation. No external APIs, no AI services. Everything runs locally.
-3. Two modes controlled by a setting (environment variable HEADROOM_ALLOW_UPLOADS, default OFF):
-   - OFF (default, used for any cloud deployment): upload widget hidden; only sample statements available;
-     show a note: "Upload is disabled in the online demo for privacy. Run the app locally to analyse your own statements."
-   - ON (local use only): upload enabled. Show a clear notice before upload: processed on this computer only,
-     never stored, cleared when you close the tab or click "Clear my data".
+3. Upload gating (`ui/privacy.py::uploads_allowed`):
+   - Browser build (stlite): ON automatically, because files never leave the device. Notice: read inside your
+     web browser, never uploaded, never saved, deleted after 10 minutes of inactivity / "Clear my data" /
+     closing or refreshing the tab. Plus a "How to verify this yourself" expander (DevTools → Network).
+   - Local Python with HEADROOM_ALLOW_UPLOADS=1: ON, with the "processed on this computer only" notice.
+   - Any other server deployment (e.g. Streamlit Community Cloud): OFF; samples only, with the note
+     "Upload is disabled in the online demo for privacy. Run the app locally to analyse your own statements."
 4. Strip sensitive details immediately after parsing: account numbers, BSBs, card numbers, names, addresses,
    and reference numbers in descriptions (regex-based redaction). Never display raw statement headers.
 5. "Clear my data" button that wipes all statement data from st.session_state.
@@ -121,6 +149,13 @@ dimensions, e.g. `(n_sims, months)`; it loops only over months, never simulation
    except data/samples/, data/processed/ and data/raw/ (public RBA/ABS data). tests/test_privacy.py fails if any
    .pdf/.csv exists outside those folders.
 8. Never use real people's data in samples or tests — synthetic only.
+9. Browser build: statement data in memory only. No IndexedDB, localStorage, persistent file system
+   (no `idbfsMountpoints`), or file writes. Streamlit itself keeps only the theme choice in localStorage.
+10. No network code anywhere in engine/, app_pages/ or ui/: no requests, urllib, httpx, http, socket,
+    pyodide.http/pyfetch/open_url, js fetch/XMLHttpRequest (tests/test_privacy.py scans for them).
+11. web/index.html has a Content-Security-Policy whose sources are ONLY 'self' and https://cdn.jsdelivr.net
+    (stlite + Pyodide), each explained in a comment. No other domains, no Google Fonts, analytics or
+    trackers; the stlite version is pinned exactly (tests/test_web_build.py).
 
 How it's implemented:
 - **One namespace.** All statement data lives in `st.session_state["statement"]` (a dict): transactions,
@@ -134,8 +169,13 @@ How it's implemented:
   `touch()`. Final minute: "Keep my session" / "Clear now". `wipe()` removes the namespace, `stmtw_*` keys,
   pre-filled `calc_*` widget keys and `calc_last_suggested`, bumps the uploader key, then `gc.collect()`.
 - **Closed tabs:** `server.disconnectedSessionTTL = 60` in .streamlit/config.toml; Streamlit frees the session
-  lazily, at some point after that, so the notice says "within about a minute of closing the tab".
-- **Honest limit:** deleting releases memory; Python can't guarantee the bytes are overwritten immediately.
+  lazily, at some point after that, so the notice says "within about a minute of closing the tab". In the
+  browser build, closing or refreshing the tab destroys the Python runtime (and all data) at once.
+- **Timeout in the browser:** `st.fragment(run_every=...)` works in stlite 1.12.0 (tested: a 75-second test
+  build wiped the data and showed the expired message), so session_guard.py is used unchanged; no JS timer.
+- **Honest limits:** deleting releases memory; Python can't guarantee the bytes are overwritten immediately.
+  The browser guarantee rests on the published code + CSP; visitors trust that GitHub Pages serves this repo's
+  code and that jsDelivr serves the pinned packages unmodified (no subresource-integrity hashes yet).
 - No `st.cache_*` in any page or helper that touches statement figures (tested). `engine/statements/` works on
   bytes/DataFrames; tests check it has no network, file-writing, logging or caching code and that parsing
   writes no files. Sample merchants are real businesses; people, employers and the bank ("Sample Bank") are

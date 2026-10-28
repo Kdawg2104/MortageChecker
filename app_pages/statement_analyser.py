@@ -12,6 +12,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from engine.budget import living_costs
+from engine.runtime import IS_BROWSER
 from engine.statements.analyse import (
     estimate_gross,
     household_income_split,
@@ -36,7 +37,7 @@ from ui import session_guard as guard
 from ui.calculator_state import effective_inputs
 from ui.charts import TEMPLATE, TEAL, CORAL
 from ui.components import md_safe, money, what_this_means
-from ui.privacy import UPLOAD_DISABLED_NOTE, UPLOAD_NOTICE, clear_statement_data, uploads_allowed
+from ui.privacy import UPLOAD_DISABLED_NOTE, VERIFY_STEPS, clear_statement_data, upload_notice, uploads_allowed
 from ui.session_guard import UPLOADER_VERSION, WIDGET_PREFIX
 
 SAMPLES = Path(__file__).resolve().parent.parent / "data" / "samples"
@@ -133,7 +134,10 @@ st.caption("Samples are synthetic statements from the fictional \"Sample Bank\":
 if uploads_allowed():
     with st.container(border=True):
         st.markdown("**Or upload your own statements** (CSV or text-based PDF, ideally 3 months)")
-        st.info(UPLOAD_NOTICE, icon=":material/lock:")
+        st.info(upload_notice(), icon=":material/lock:")
+        if IS_BROWSER:
+            with st.expander("How to verify this yourself", icon=":material/policy:"):
+                st.markdown(VERIFY_STEPS)
         files = st.file_uploader(
             "Statement files", type=["csv", "pdf"], accept_multiple_files=True,
             key=f"{WIDGET_PREFIX}upload_{st.session_state.get(UPLOADER_VERSION, 0)}", label_visibility="collapsed",

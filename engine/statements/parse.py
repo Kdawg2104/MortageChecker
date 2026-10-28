@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
+from engine.statements.pdf_text import extract_pdf_text
 from engine.statements.redact import redact
 
 MIN_DAYS = 85   # about 3 months; less than this and results are less reliable
@@ -204,12 +205,12 @@ LINE = re.compile(
 OPENING = re.compile(rf"OPENING BALANCE\s+(?P<balance>{MONEY})", re.IGNORECASE)
 
 
-def parse_pdf(data: bytes) -> pd.DataFrame:
-    """Parse a text-based PDF statement. Raises ScannedPdfError if there's no text to read."""
-    import pdfplumber  # imported here so CSV-only use doesn't need it
+def parse_pdf(data: bytes, backend: str | None = None) -> pd.DataFrame:
+    """Parse a text-based PDF statement. Raises ScannedPdfError if there's no text to read.
 
-    with pdfplumber.open(io.BytesIO(data)) as pdf:
-        text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+    backend picks how the text is read (see pdf_text.py); by default whichever is installed.
+    """
+    text = extract_pdf_text(data, backend)
     if not text.strip():
         raise ScannedPdfError("No text found in this PDF")
 

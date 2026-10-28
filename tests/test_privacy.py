@@ -10,8 +10,9 @@ from engine.statements.parse import parse_file
 
 ROOT = Path(__file__).resolve().parent.parent
 SAMPLES = ROOT / "data" / "samples"
-ALLOWED_DATA_FOLDERS = ("data/samples/", "data/processed/", "data/raw/")
-SKIP_FOLDERS = {".venv", ".git", ".idea", "__pycache__", ".pytest_cache", "node_modules"}
+# web/app/data/... are the browser build's copies of the synthetic samples and public data (gitignored).
+ALLOWED_DATA_FOLDERS = ("data/samples/", "data/processed/", "data/raw/", "web/app/data/samples/", "web/app/data/processed/")
+SKIP_FOLDERS = {".venv", ".git", ".idea", "__pycache__", ".pytest_cache", "node_modules", ".wheel-cache"}
 STATEMENT_EXTENSIONS = {".pdf", ".csv", ".ofx", ".qif"}
 
 
@@ -86,3 +87,24 @@ def test_no_caching_where_statement_figures_are_used():
     for name in STATEMENT_PAGES:
         source = (ROOT / name).read_text()
         assert "st.cache" not in source, f"{name} uses a Streamlit cache"
+
+
+# Network access anywhere in the app code. The browser build adds Pyodide's own ways to reach the network
+# (pyodide.http.pyfetch / open_url, the js module's fetch / XMLHttpRequest) and browser storage.
+NETWORK_PATTERNS = (
+    r"\bimport (requests|httpx|urllib\w*|http|socket|aiohttp|websocket\w*|ftplib|smtplib)\b",
+    r"\bfrom (requests|httpx|urllib\w*|http|socket|aiohttp|websocket\w*|ftplib|smtplib)\b",
+    r"\bpyodide\.http\b", r"\bpyfetch\b", r"\bopen_url\b",
+    r"\bimport js\b", r"\bfrom js\b", r"\bXMLHttpRequest\b", r"\bjs\.fetch\b",
+    r"\blocalStorage\b", r"\bsessionStorage\b", r"\bindexedDB\b", r"\bIDBFS\b",
+)
+APP_CODE_FOLDERS = ("engine", "app_pages", "ui")
+
+
+def test_no_network_or_browser_storage_in_app_code():
+    """Browser privacy rule: nothing in the app can send data anywhere or persist it in the browser."""
+    files = [ROOT / "app.py"] + [p for folder in APP_CODE_FOLDERS for p in (ROOT / folder).rglob("*.py")]
+    for path in files:
+        source = path.read_text(encoding="utf-8")
+        for pattern in NETWORK_PATTERNS:
+            assert not re.search(pattern, source), f"{path.relative_to(ROOT)} matches {pattern!r}"

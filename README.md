@@ -30,28 +30,47 @@ the risk of rate rises. General information only, not financial advice.
 Categorisation is rules-based (`data/categories.yaml`, human-readable and editable), with no AI services.
 Gross income is estimated by inverting the tax engine from observed take-home pay.
 
-## Privacy
+## Try it
 
-Statement data is sensitive, so the analyser is built to keep it on your computer:
+- **Browser version (your own statements, processed on your device):** https://kdawg2104.github.io/MortageChecker/
+- **Streamlit Community Cloud demo (synthetic samples only):** link to be added once deployed.
 
-- **In memory only.** Files are read from memory, never saved to disk, logs, caches or databases.
-- **Automatic deletion.** All statement data, including any figures copied into the Calculator, is deleted
-  after **10 minutes of inactivity**, when you click **Clear my data**, or within about a minute of closing
-  the tab. A check runs every 15 seconds, so it works even if you walk away; a status chip shows the time
-  left, and in the final minute you can choose "Keep my session". Deleting releases the memory; like any
-  Python program, the app can't guarantee the old bytes are overwritten immediately.
-- **No network calls.** Parsing and categorisation run entirely locally: no external APIs or AI services.
-- **Uploads are off by default.** The online demo only offers synthetic samples. Uploading your own
-  statements needs the app running locally with `HEADROOM_ALLOW_UPLOADS=1`.
+## Privacy by design
+
+Statement data is sensitive, so Headroom is built so that it never reaches a server.
+
+**The browser version runs entirely on your device.** The GitHub Pages site is static files only. It uses
+[stlite](https://github.com/whitphx/stlite) to run the same Python app inside your browser on Pyodide (Python
+compiled to WebAssembly). When you upload a statement, the file goes from your disk into the Python running in
+that tab, and nowhere else. There is no backend that could receive it.
+
+- **No network calls in the app code.** A test scans `engine/`, `app_pages/` and `ui/` and fails on any network
+  library or browser fetch (`requests`, `urllib`, `httpx`, `socket`, `pyfetch`, `open_url`, `js.fetch`...).
+- **Content Security Policy.** `web/index.html` tells the browser to block every request except to the site
+  itself and `cdn.jsdelivr.net` (which serves the pinned stlite release and Pyodide). Both only serve downloads.
+  A test checks the policy allows no other domains. No analytics, trackers or Google Fonts.
+- **In memory only.** No IndexedDB, localStorage, file system or caches hold statement data.
+- **Automatic deletion.** All statement data, including figures copied into the Calculator, is deleted after
+  **10 minutes of inactivity**, when you click **Clear my data**, or when you close or refresh the tab (which
+  destroys the in-browser Python runtime). A status chip shows the time left; in the final minute you can choose
+  "Keep my session".
 - **Redaction.** Account numbers, BSBs, card numbers, personal names and reference numbers are removed as soon
   as a file is read; statement headers are never shown.
-- **No telemetry.** Streamlit usage statistics are switched off.
-- **Kept out of git.** `.gitignore` blocks statement-like files (`*.csv`, `*.pdf`, `*.ofx`, `*.qif`) outside the
-  synthetic sample and public-data folders, and a test fails if any appear.
-- **Synthetic samples only.** The sample statements come from the fictional "Sample Bank" with invented people.
+- **Verify it yourself.** Open developer tools → Network, clear the list, upload a statement: no request is sent.
 
-These rules are enforced by tests in `tests/test_privacy.py`, `tests/test_session_guard.py` (with a fake
-clock) and `tests/test_statement_page.py`.
+**Server deployments are samples-only.** Uploads are switched on automatically in the browser build and locally
+with `HEADROOM_ALLOW_UPLOADS=1` (your own computer is the server). Any other server deployment, such as Streamlit
+Community Cloud, hides the upload box and offers synthetic samples only.
+
+**Also:** Streamlit telemetry is off; `.gitignore` blocks statement-like files outside the synthetic sample and
+public-data folders (a test fails if any appear); the sample statements come from the fictional "Sample Bank".
+
+**Honest limits.** The guarantee rests on the published code and the CSP: you trust that GitHub Pages serves
+this repository's code and jsDelivr serves the pinned packages unmodified. The code is open here for anyone to
+check. Deleting data releases memory, but Python can't guarantee the old bytes are overwritten immediately.
+
+These rules are enforced by `tests/test_privacy.py`, `tests/test_session_guard.py` (with a fake clock),
+`tests/test_runtime_gating.py`, `tests/test_web_build.py` and `tests/test_statement_page.py`.
 
 ## Running it
 
@@ -77,6 +96,15 @@ To try the timeout without waiting 10 minutes (testing only):
 HEADROOM_ALLOW_UPLOADS=1 HEADROOM_TIMEOUT_SECONDS=90 streamlit run app.py
 ```
 
+Browser version, built and served locally:
+
+```bash
+python scripts/build_web.py && python -m http.server 8000 -d web
+```
+
+Then open http://localhost:8000. Pushing to `main` builds and deploys it to GitHub Pages
+(`.github/workflows/pages.yml`).
+
 Tests:
 
 ```bash
@@ -89,6 +117,6 @@ accuracy.
 
 ## Disclaimer
 
-This is an independent personal portfolio project. It provides general information only, does not take into
+Headroom is an independent personal project, not affiliated with any bank, lender or employer. It provides general information only, does not take into
 account your objectives, financial situation or needs, and is not financial advice, credit advice or a loan
 approval. See the About & Disclaimer page in the app.

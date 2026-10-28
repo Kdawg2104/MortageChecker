@@ -1,0 +1,44 @@
+# Builds the browser-only version of Headroom (scripts/build_web.py) and publishes web/ to GitHub Pages.
+# Everything in the published site runs in the visitor's browser; there is no server-side code.
+name: Deploy browser build to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      # Don't publish a build whose tests fail (incl. the privacy, CSP and build tests).
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest
+      # build_web.py only uses the standard library; it downloads pinned wheels and checks their SHA-256.
+      - run: python scripts/build_web.py
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

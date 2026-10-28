@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!--
+    Content Security Policy: the browser refuses any request this policy doesn't allow.
+    Only two sources are allowed anywhere:
+      'self'                     this site (GitHub Pages): the page, the app's Python files, the two wheels.
+      https://cdn.jsdelivr.net   the public npm/Pyodide CDN that serves the pinned stlite release
+                                 (@stlite/browser@{{STLITE_VERSION}}: Streamlit's interface and its Python wheel)
+                                 and Pyodide (Python compiled to WebAssembly) with its built-in packages
+                                 (numpy, pandas, pyarrow, pyyaml ...).
+    connect-src is the one that matters for data leaving the device: fetch/XHR/WebSocket can only reach
+    those two places, and both are static file hosts that only serve downloads.
+    'wasm-unsafe-eval' lets the browser compile WebAssembly (Pyodide); it does not allow JavaScript eval.
+    blob: and data: are needed because stlite starts Python in a web worker created from an in-page URL.
+    No analytics, trackers or font services: fonts ship inside the stlite bundle.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; connect-src 'self' https://cdn.jsdelivr.net; worker-src 'self' blob: data: https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net data:; img-src 'self' data: blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Headroom — your mortgage reality check</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="{{STLITE_BASE}}/stlite.css">
+  <link rel="stylesheet" href="loading.css">
+</head>
+<body>
+  <div id="loading" role="status">
+    <img src="favicon.svg" alt="" width="64" height="64">
+    <p class="title">Loading Headroom…</p>
+    <p>The first visit takes a little longer while the app loads in your browser.</p>
+    <p class="small">Everything runs on this device. Your statements are never uploaded.</p>
+  </div>
+  <div id="root"></div>
+  <script type="module" src="headroom.js"></script>
+</body>
+</html>

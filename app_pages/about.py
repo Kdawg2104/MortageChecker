@@ -18,7 +18,7 @@ for point in KEY_ASSUMPTIONS:
 st.header("About this project")
 st.markdown(
     """
-Mortgage Reality Check is an independent personal portfolio project. It aims to show Australians
+Headroom is an independent personal portfolio project. It aims to show Australians
 whether a mortgage is realistic for their income and lifestyle, and how exposed they'd be to rate
 rises, in plain English.
 

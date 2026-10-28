@@ -1,4 +1,6 @@
-# Mortgage Reality Check
+# Headroom
+
+*Your mortgage reality check.*
 
 A Streamlit app that helps Australians see whether a mortgage is realistic for their income, lifestyle and
 the risk of rate rises. General information only, not financial advice.
@@ -40,7 +42,7 @@ Statement data is sensitive, so the analyser is built to keep it on your compute
   Python program, the app can't guarantee the old bytes are overwritten immediately.
 - **No network calls.** Parsing and categorisation run entirely locally: no external APIs or AI services.
 - **Uploads are off by default.** The online demo only offers synthetic samples. Uploading your own
-  statements needs the app running locally with `MRC_ALLOW_UPLOADS=1`.
+  statements needs the app running locally with `HEADROOM_ALLOW_UPLOADS=1`.
 - **Redaction.** Account numbers, BSBs, card numbers, personal names and reference numbers are removed as soon
   as a file is read; statement headers are never shown.
 - **No telemetry.** Streamlit usage statistics are switched off.
@@ -66,13 +68,13 @@ streamlit run app.py
 Local mode with your own statements:
 
 ```bash
-MRC_ALLOW_UPLOADS=1 streamlit run app.py
+HEADROOM_ALLOW_UPLOADS=1 streamlit run app.py
 ```
 
 To try the timeout without waiting 10 minutes (testing only):
 
 ```bash
-MRC_ALLOW_UPLOADS=1 MRC_TIMEOUT_SECONDS=90 streamlit run app.py
+HEADROOM_ALLOW_UPLOADS=1 HEADROOM_TIMEOUT_SECONDS=90 streamlit run app.py
 ```
 
 Tests:

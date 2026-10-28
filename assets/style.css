@@ -1,4 +1,4 @@
-/* All custom styling for Mortgage Reality Check. Loaded by ui.components.load_css(). */
+/* All custom styling for Headroom. Loaded by ui.components.load_css(). */
 
 /* ---------- Hero (st.container(key="hero") gets the class .st-key-hero) ---------- */
 .st-key-hero {
@@ -36,6 +36,12 @@
     font-size: 3rem;
     line-height: 1.1;
     padding-bottom: 0.25rem;
+}
+
+.st-key-hero .mrc-subtitle {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: -0.5rem;
 }
 
 .st-key-hero .mrc-tagline {
@@ -142,7 +148,13 @@
         font-size: 2rem;
     }
 
-    .st-key-hero .mrc-tagline {
+    .st-key-hero .mrc-subtitle {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: -0.5rem;
+}
+
+.st-key-hero .mrc-tagline {
         font-size: 1.05rem;
     }
 

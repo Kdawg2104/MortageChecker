@@ -9,7 +9,7 @@ If the Statement Analyser / upload feature from docs/prompts/phase2_5.md does no
 ## 1. Upload
 - On the Statement Analyser page, an upload box (st.file_uploader) accepting PDF and CSV, multiple files allowed
   (e.g. 3 monthly statements or one 3-month statement).
-- Only shown when MRC_ALLOW_UPLOADS=1 (local use). Online/demo mode keeps upload hidden.
+- Only shown when HEADROOM_ALLOW_UPLOADS=1 (local use). Online/demo mode keeps upload hidden.
 - Test it with data/samples/sample_jamie_statement.pdf and .csv (synthetic, Sample Bank) — both must parse to
   88 transactions, 1 Jul–30 Sep 2026, opening balance $40,000.00, closing $49,322.77.
   Compare categories against data/samples/sample_jamie_ground_truth.csv and report accuracy.
@@ -60,13 +60,13 @@ A normal Streamlit page only reruns when the user interacts, so an idle tab woul
 - wipe() removes the statement namespace AND statement-derived pre-fills on other pages, and leaves unrelated
   state (e.g. disclaimer acknowledgement) alone
 - "Clear my data" wipes immediately
-- With MRC_ALLOW_UPLOADS unset, upload is not available
+- With HEADROOM_ALLOW_UPLOADS unset, upload is not available
 - Parsing the sample PDF and CSV writes no files (working directory and temp dir unchanged)
 
 ## When done
 - Run pytest (all pass), report categorisation accuracy on the Jamie sample.
 - Tell me how to test the timeout manually (e.g. temporarily set TIMEOUT_SECONDS to 60 via an env var
-  MRC_TIMEOUT_SECONDS for testing — default stays 600).
+  HEADROOM_TIMEOUT_SECONDS for testing — default stays 600).
 - Plain-English explanation of session_guard.py I can use in an interview, including the limits
   (Python can't guarantee memory is overwritten, only released; the honest wording for the privacy notice).
 - Update CLAUDE.md and README privacy section.

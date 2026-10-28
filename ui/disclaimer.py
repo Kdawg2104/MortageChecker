@@ -12,7 +12,7 @@ FULL_DISCLAIMER = [
     "Lenders use their own criteria. Your actual borrowing power and repayments may differ.",
     "Speak to a licensed financial adviser or mortgage broker, and see "
     "[moneysmart.gov.au](https://moneysmart.gov.au), before making decisions.",
-    "This is an independent personal portfolio project. It is not affiliated with, endorsed by "
+    "Headroom is an independent personal project. It is not affiliated with, endorsed by "
     "or connected to any bank, lender or employer.",
     "**No personal data is stored.** What you type stays in your browser session and is gone "
     "when you close the page.",

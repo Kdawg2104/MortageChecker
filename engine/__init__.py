@@ -1,1 +1,1 @@
-"""Calculation engine for Mortgage Reality Check. Pure Python, no UI code."""
+"""Calculation engine for Headroom. Pure Python, no UI code."""

@@ -11,7 +11,8 @@ HERO_PHOTO_CREDIT = "Photo: [photographer name] on [Unsplash/Pexels]"
 GLANCE_FIGURES = ("cash_rate", "avg_variable_rate_new", "median_national", "cpi_annual")
 
 with hero_container():
-    st.title("Mortgage Reality Check")
+    st.title("Headroom")
+    st.markdown('<p class="mrc-subtitle">Your mortgage reality check</p>', unsafe_allow_html=True)
     st.markdown(
         '<p class="mrc-tagline">Find out if a mortgage really fits your income, your lifestyle '
         "and the risk of rate rises, before a lender tells you.</p>",

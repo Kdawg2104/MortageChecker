@@ -23,8 +23,8 @@ from collections.abc import Callable, MutableMapping
 
 import streamlit as st
 
-# 10 minutes. MRC_TIMEOUT_SECONDS can shorten it for manual testing only; the default stays 600.
-TIMEOUT_SECONDS = int(os.environ.get("MRC_TIMEOUT_SECONDS", "600"))
+# 10 minutes. HEADROOM_TIMEOUT_SECONDS can shorten it for manual testing only; the default stays 600.
+TIMEOUT_SECONDS = int(os.environ.get("HEADROOM_TIMEOUT_SECONDS", "600"))
 WARNING_SECONDS = 60
 CHECK_EVERY = "15s"
 # "inactivity": every interaction restarts the timer. "absolute": the timer runs from when data was loaded.

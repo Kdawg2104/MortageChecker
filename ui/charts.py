@@ -9,7 +9,7 @@ GOLD = "#d9a21b"
 CORAL = "#d64545"
 COLOURS = [TEAL, NAVY, GOLD, "#e07b39", "#5b5fc7", "#3e9c5f", CORAL, "#8a94a6"]
 
-pio.templates["mrc"] = go.layout.Template(
+pio.templates["headroom"] = go.layout.Template(
     layout=dict(
         font=dict(family="sans-serif", color="#1f2933", size=13),
         colorway=COLOURS,
@@ -22,4 +22,4 @@ pio.templates["mrc"] = go.layout.Template(
         hoverlabel=dict(font_family="sans-serif"),
     )
 )
-TEMPLATE = "plotly_white+mrc"
+TEMPLATE = "plotly_white+headroom"

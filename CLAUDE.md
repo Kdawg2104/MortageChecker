@@ -1,4 +1,4 @@
-# Mortgage Reality Check
+# Headroom — your mortgage reality check
 
 A multi-page Streamlit app that helps Australians see whether a mortgage is realistic for their
 income, lifestyle and the risk of rate rises. It is a portfolio project for GitHub and a resume, so
@@ -22,9 +22,9 @@ MortageChecker/
 ├── ui/                    Shared display helpers (no calculations)
 │   ├── components.py      money(), md_safe(), cards, hero, footer, disclaimer dialog
 │   ├── calculator_state.py Calculator inputs in session state + household_from_inputs() (shared by pages)
-│   ├── privacy.py         uploads_allowed() (MRC_ALLOW_UPLOADS), privacy notice, clear_statement_data()
+│   ├── privacy.py         uploads_allowed() (HEADROOM_ALLOW_UPLOADS), privacy notice, clear_statement_data()
 │   ├── session_guard.py   10-minute inactivity timeout: statement namespace, touch/expire/wipe, status fragment
-│   ├── charts.py          Plotly template "mrc" matching the theme
+│   ├── charts.py          Plotly template "headroom" matching the theme
 │   └── disclaimer.py      Disclaimer and assumptions wording (single source)
 ├── engine/                All calculations. Pure Python, NO Streamlit imports
 │   ├── tax.py             AU resident tax 2026-27 (scalar take_home + vectorised take_home_array)
@@ -55,8 +55,8 @@ MortageChecker/
   - Run the app: `.venv/bin/streamlit run app.py`
   - Run the tests: `.venv/bin/python -m pytest`
   - Refresh historical data (manual, needs internet): `.venv/bin/python scripts/update_data.py`
-  - Local use with statement uploads: `MRC_ALLOW_UPLOADS=1 .venv/bin/streamlit run app.py`
-  - Test the timeout quickly: `MRC_ALLOW_UPLOADS=1 MRC_TIMEOUT_SECONDS=90 .venv/bin/streamlit run app.py`
+  - Local use with statement uploads: `HEADROOM_ALLOW_UPLOADS=1 .venv/bin/streamlit run app.py`
+  - Test the timeout quickly: `HEADROOM_ALLOW_UPLOADS=1 HEADROOM_TIMEOUT_SECONDS=90 .venv/bin/streamlit run app.py`
     (testing only; the default is 600 seconds)
   - Regenerate samples + accuracy report: `.venv/bin/python scripts/make_samples.py --report`
 - **The app never downloads data at runtime.** It reads data/processed/ only.
@@ -107,7 +107,7 @@ dimensions, e.g. `(n_sims, months)`; it loops only over months, never simulation
 1. Statement data is processed IN MEMORY ONLY. Never write uploaded files or parsed transactions to disk,
    logs, caches (no st.cache_data on statement data), databases or temp files.
 2. No network calls during parsing/categorisation. No external APIs, no AI services. Everything runs locally.
-3. Two modes controlled by a setting (environment variable MRC_ALLOW_UPLOADS, default OFF):
+3. Two modes controlled by a setting (environment variable HEADROOM_ALLOW_UPLOADS, default OFF):
    - OFF (default, used for any cloud deployment): upload widget hidden; only sample statements available;
      show a note: "Upload is disabled in the online demo for privacy. Run the app locally to analyse your own statements."
    - ON (local use only): upload enabled. Show a clear notice before upload: processed on this computer only,

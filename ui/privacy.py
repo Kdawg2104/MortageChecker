@@ -9,7 +9,7 @@ import os
 
 from ui.session_guard import timeout_text, wipe
 
-UPLOAD_SETTING = "MRC_ALLOW_UPLOADS"
+UPLOAD_SETTING = "HEADROOM_ALLOW_UPLOADS"
 
 UPLOAD_DISABLED_NOTE = (
     "Upload is disabled in the online demo for privacy. Run the app locally to analyse your own statements."
@@ -23,7 +23,7 @@ UPLOAD_NOTICE = (
 
 
 def uploads_allowed() -> bool:
-    """Uploads are OFF unless MRC_ALLOW_UPLOADS is set to 1/true/yes/on (local use only)."""
+    """Uploads are OFF unless HEADROOM_ALLOW_UPLOADS is set to 1/true/yes/on (local use only)."""
     return os.environ.get(UPLOAD_SETTING, "").strip().lower() in ("1", "true", "yes", "on")
 
 

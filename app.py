@@ -1,15 +1,17 @@
-"""Mortgage Reality Check: entry point.
+"""Headroom (your mortgage reality check): entry point.
 
 Sets up the page, shared styling, the statement-data timeout, the first-visit disclaimer and navigation.
-Each page lives in pages/; all calculations live in engine/.
+Each page lives in app_pages/; all calculations live in engine/.
 """
+
+from pathlib import Path
 
 import streamlit as st
 
 from ui.components import disclaimer_dialog, footer, load_css
 from ui.session_guard import guard_rerun, status_fragment
 
-st.set_page_config(page_title="Mortgage Reality Check", page_icon="🏠", layout="wide")
+st.set_page_config(page_title="Headroom", page_icon=str(Path(__file__).parent / "assets" / "favicon.svg"), layout="wide")
 load_css()
 
 page = st.navigation(
